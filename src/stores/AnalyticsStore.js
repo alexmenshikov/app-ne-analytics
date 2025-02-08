@@ -4,7 +4,7 @@ import isoWeek from 'dayjs/plugin/isoWeek';
 import { getSellerInfo } from "../composible/getSellerInfo.js";
 import { getWbArticles } from "../composible/getWbArticles.js";
 import { getSales } from "../composible/getSales.js";
-import { ref, computed } from "vue";
+import { watch, nextTick, ref, computed } from "vue";
 
 dayjs.extend(isoWeek);
 
@@ -40,29 +40,48 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   });
 
   const optionCategories = computed(() => {
+    const selectedArticles = filters.value.articles;
+
     return Array.from(
-      new Map(wbArticles.value.map(card => [card.category, {
-        value: card.category,
-        label: card.category
-      }])).values()
+      new Map(wbArticles.value
+        .filter(article => selectedArticles.length === 0 || selectedArticles.includes(article.nmID))
+        .map(article => [article.category, {
+          value: article.category,
+          label: article.category
+        }])).values()
     );
   });
 
   const optionArticles = computed(() => {
-    if (filters.value.categories.length !== 0) {
-      return wbArticles.value.filter(article => {
-        return filters.value.categories.find(category => {
-          return article.category === category;
-        })
-      }).map(article => ({
+    const selectedCategories = filters.value.categories;
+
+    return wbArticles.value
+      .filter(article => selectedCategories.length === 0 || selectedCategories.includes(article.category))
+      .map(article => ({
         value: article.nmID,
-        label: article.vendorCode
+        label: `${article.vendorCode}-${article.category}`
       }));
-    } else {
-      return wbArticles.value.map((article) => ({
-        value: article.nmID,
-        label: article.vendorCode
-      }));
+  });
+
+  watch(optionCategories, (newCategories) => {
+    const availableCategories = newCategories.map(c => c.value);
+    const updatedCategories = filters.value.categories.filter(c => availableCategories.includes(c));
+
+    if (updatedCategories.length !== filters.value.categories.length) {
+      nextTick(() => {
+        filters.value.categories = updatedCategories;
+      });
+    }
+  });
+
+  watch(optionArticles, (newArticles) => {
+    const availableArticles = newArticles.map(a => a.value);
+    const updatedArticles = filters.value.articles.filter(a => availableArticles.includes(a));
+
+    if (updatedArticles.length !== filters.value.articles.length) {
+      nextTick(() => {
+        filters.value.articles = updatedArticles;
+      });
     }
   });
 
