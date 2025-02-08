@@ -89,17 +89,9 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     // this.loading -= 1;
   };
 
-  const setDate = (values) => {
-    filters.value.dates = values;
-  };
-
-  const setCategories = (values) => {
-    filters.value.categories = values;
-  };
-
-  const setArticles = (values) => {
-    filters.value.articles = values;
-  };
+  // const setDate = (values) => {
+  //   filters.value.dates = values;
+  // };
 
   return {
     companyArray,
@@ -114,9 +106,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentCompaniesInfo,
     enrichmentWbArticles,
     enrichmentByProducts,
-    setDate,
-    setCategories,
-    setArticles
+    // setDate,
   }
 });
 

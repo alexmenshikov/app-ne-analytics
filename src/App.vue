@@ -120,11 +120,10 @@ const disabledDate = (current) => {
               <div class="period-report__item">
                 <a-form-item label=" ">
                   <a-range-picker
-                    :value="analyticsStore.filters.dates"
+                    v-model:value="analyticsStore.filters.dates"
                     :format="dateFormat"
                     :disabled-date="disabledDate"
                     :allowClear="false"
-                    @change="analyticsStore.setDate($event)"
                   />
 <!--                  :default-picker-value="[getPreviousMonth(), getCurrentMonth()]"-->
                 </a-form-item>
@@ -139,8 +138,8 @@ const disabledDate = (current) => {
               <div class="filter__items-item">
                 <a-form-item label="Компании">
                   <ne-custom-select
+                    v-model:value="analyticsStore.filters.companies"
                     :options="analyticsStore.optionCompanies"
-                    :value="analyticsStore.filters.companies"
                     placeholder="Все компании"
                   />
                 </a-form-item>
