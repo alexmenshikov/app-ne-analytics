@@ -49,11 +49,21 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   });
 
   const optionArticles = computed(() => {
-    return wbArticles.value.map((article) => ({
-      value: article.nmID,
-      label: article.vendorCode,
-      // label: `${article.vendorCode} (${article.category})`
-    }));
+    if (filters.value.categories.length !== 0) {
+      return wbArticles.value.filter(article => {
+        return filters.value.categories.find(category => {
+          return article.category === category;
+        })
+      }).map(article => ({
+        value: article.nmID,
+        label: article.vendorCode
+      }));
+    } else {
+      return wbArticles.value.map((article) => ({
+        value: article.nmID,
+        label: article.vendorCode
+      }));
+    }
   });
 
   const enrichmentCompaniesInfo = async() => {
@@ -78,7 +88,6 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   };
 
   const enrichmentByProducts = async() => {
-    // this.loader += 1;
     for (const company of companyArray.value) {
       byProducts.value = await getSales({
         apiToken: company.apiToken,
@@ -86,12 +95,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
       });
     }
-    // this.loading -= 1;
   };
-
-  // const setDate = (values) => {
-  //   filters.value.dates = values;
-  // };
 
   return {
     companyArray,
@@ -106,7 +110,6 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentCompaniesInfo,
     enrichmentWbArticles,
     enrichmentByProducts,
-    // setDate,
   }
 });
 
