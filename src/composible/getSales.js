@@ -18,7 +18,7 @@ export async function getSales({ apiToken, dateFrom, dateTo }) {
 
     const filterResponse = response.data
       .filter(sale =>
-        dayjs(sale.lastChangeDate).format('YYYY.MM.DD') <= dayjs(dateTo).format('YYYY.MM.DD')
+        dayjs(sale.date).format('YYYY.MM.DD') <= dayjs(dateTo).format('YYYY.MM.DD')
       )
       .filter(sale => sale.orderType === "Клиентский")
       .filter(sale => sale.saleID?.startsWith('S'));
@@ -31,8 +31,7 @@ export async function getSales({ apiToken, dateFrom, dateTo }) {
         el.nmId === sale.nmId &&
         el.category === sale.category &&
         el.subject === sale.subject &&
-        el.brand === sale.brand &&
-        el.techSize === sale.techSize
+        el.brand === sale.brand
       );
 
       if (existing) {
@@ -46,7 +45,6 @@ export async function getSales({ apiToken, dateFrom, dateTo }) {
           subject: sale.subject,
           brand: sale.brand,
           priceWithDisc: sale.priceWithDisc,
-          techSize: sale.techSize,
           count: 1,
         });
       }

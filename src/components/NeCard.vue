@@ -11,6 +11,7 @@ import {
 interface Parametr {
   value: number;
   symbol?: string;
+  roundTheValue?: boolean;
 }
 
 const props = defineProps({
@@ -50,10 +51,10 @@ const formatPrice = (value) => {
     <div class="card__body">
       <div class="card__body-value" v-for="(parameter, index) in parameters" :key="index">
         <template v-if="index === 0">
-          {{ formatPrice(parameter.value) }} {{ parameter.symbol }}
+          {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parameter.value.toFixed(2)) }} {{ parameter.symbol }}
         </template>
         <template v-else>
-          &nbsp;/ {{ formatPrice(parameter.value) }} {{ parameter.symbol }}
+          &nbsp;/ {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parameter.value.toFixed(2)) }} {{ parameter.symbol }}
         </template>
       </div>
     </div>

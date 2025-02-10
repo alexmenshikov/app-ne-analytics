@@ -1,10 +1,10 @@
-import { defineStore } from "pinia";
+import {defineStore} from "pinia";
 import dayjs from "dayjs";
 import isoWeek from 'dayjs/plugin/isoWeek';
-import { getSellerInfo } from "../composible/getSellerInfo.js";
-import { getWbArticles } from "../composible/getWbArticles.js";
-import { getSales } from "../composible/getSales.js";
-import { watch, nextTick, ref, computed } from "vue";
+import {getSellerInfo} from "../composible/getSellerInfo.js";
+import {getWbArticles} from "../composible/getWbArticles.js";
+import {getSalesReport} from "../composible/getSalesReport.js";
+import {computed, nextTick, ref, watch} from "vue";
 
 dayjs.extend(isoWeek);
 
@@ -19,17 +19,19 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   const byProducts = ref([]);
   const filters = ref({
     dates: [
-      dayjs().startOf('isoWeek'),
-      dayjs()
+      dayjs().subtract(1, 'week').startOf('isoWeek'),
+      dayjs().subtract(1, 'week').endOf('isoWeek')
     ],
     companies: [],
     categories: [],
     articles: []
   });
-  const stats = ref({
-    sales: 0, // продажи (сумма)
-    totalSales: 0, // продажи (количество)
-  });
+  // const stats = ref({
+  //   sales: 0, // продажи (сумма)
+  //   totalSales: 0, // продажи (количество)
+  //   realisation: 0, // реализация
+  //   logistics: 0, // логистика
+  // });
   const loading = ref(0);
 
   const optionCompanies = computed(() => {
@@ -85,6 +87,73 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
   });
 
+  const stats = computed(() => {
+    let filteredProducts;
+
+    if (filters.value.articles.length === 0) {
+      const validIds = new Set(optionArticles.value.map(opt => opt.value));
+      filteredProducts = byProducts.value.filter(product => validIds.has(product.nm_id));
+    } else {
+      const validIds = new Set(optionArticles.value.map(opt => opt.value));
+      const matchingIds = filters.value.articles.filter(id => validIds.has(id));
+
+      if (matchingIds.length > 0) {
+        filteredProducts = byProducts.value.filter(product => matchingIds.includes(product.nm_id));
+      } else {
+        filteredProducts = byProducts.value.filter(product => filters.value.articles.includes(product.nm_id));
+      }
+    }
+
+    return filteredProducts.reduce(
+      (acc, product) => {
+        acc.sales += product.ppvz_for_pay;
+        acc.totalSales += product.quantity;
+        acc.realisation += product.retail_price;
+        acc.logistics += product.delivery_rub;
+        return acc;
+      },
+      { sales: 0, totalSales: 0, realisation: 0, logistics: 0 }
+    );
+  });
+  // watch(() => filters.value, () => {
+  //   let filteredProducts;
+  //
+  //   console.log('byProducts:', byProducts.value);
+  //   console.log('optionArticles:', optionArticles.value);
+  //   console.log('filters:', filters.value);
+  //
+  //   if (filters.value.articles.length === 0) {
+  //     // Если articles пуст, фильтруем byProducts по nm_id из optionArticles
+  //     const validIds = new Set(optionArticles.value.map(opt => opt.value));
+  //     filteredProducts = byProducts.value.filter(product => validIds.has(product.nm_id));
+  //   } else {
+  //     // Если articles не пуст, ищем совпадения в optionArticles
+  //     const validIds = new Set(optionArticles.value.map(opt => opt.value));
+  //     const matchingIds = filters.value.articles.filter(id => validIds.has(id));
+  //
+  //     if (matchingIds.length > 0) {
+  //       // Нашли совпадения в optionArticles, фильтруем byProducts
+  //       filteredProducts = byProducts.value.filter(product => matchingIds.includes(product.nm_id));
+  //     } else {
+  //       // Если совпадений нет, ищем только в byProducts
+  //       filteredProducts = byProducts.value.filter(product => filters.value.articles.includes(product.nm_id));
+  //     }
+  //   }
+  //
+  //   console.log('Отфильтрованные товары:', filteredProducts);
+  //   // Считаем итоговые значения
+  //   stats.value = filteredProducts.reduce(
+  //     (acc, product) => {
+  //       acc.sales += product.ppvz_for_pay;
+  //       acc.totalSales += product.quantity;
+  //       acc.realisation += product.retail_price;
+  //       acc.logistics += product.delivery_rub;
+  //       return acc;
+  //     },
+  //     {sales: 0, totalSales: 0, realisation: 0, logistics: 0}
+  //   );
+  // }, { deep: true });
+
   const enrichmentCompaniesInfo = async() => {
     loading.value += 1;
     for (const company of companyArray.value) {
@@ -108,7 +177,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
   const enrichmentByProducts = async() => {
     for (const company of companyArray.value) {
-      byProducts.value = await getSales({
+      byProducts.value = await getSalesReport({
         apiToken: company.apiToken,
         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),

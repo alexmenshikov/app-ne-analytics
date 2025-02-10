@@ -197,8 +197,24 @@ const disabledDate = (current) => {
           title="Продажи"
           info="Сумма продаж с учетом применения СПП и ВБ кошелька"
           :parameters="[
-          { value: analyticsStore.stats.sales, symbol: '₽'},
+          { value: analyticsStore.stats.sales, symbol: '₽', roundTheValue: true },
           { value: analyticsStore.stats.totalSales, symbol: 'шт'}
+        ]"
+        />
+
+        <NeCard
+          title="Реализация"
+          info="Сумма продаж до применения СПП и ВБ кошелька"
+          :parameters="[
+          { value: analyticsStore.stats.realisation, symbol: '₽', roundTheValue: true }
+        ]"
+        />
+
+        <NeCard
+          title="Логистика"
+          info="Стоимость доставки товара до покупателя с учетом процента выкупа"
+          :parameters="[
+          { value: analyticsStore.stats.logistics, symbol: '₽', roundTheValue: true }
         ]"
         />
       </div>
