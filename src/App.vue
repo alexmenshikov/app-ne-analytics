@@ -53,9 +53,26 @@ onMounted(async () => {
   // sellerInfo.value = await getSellerInfo({ apiToken: companyArray[0].apiToken });
 });
 
-watch(() => analyticsStore.filters.dates, async () => {
-  await analyticsStore.enrichmentByProducts();
-}, { deep: true });
+// watch(() => analyticsStore.filters.dates, async () => {
+//   await analyticsStore.enrichmentByProducts();
+// }, { deep: true });
+
+// const handleFiltersDatesChange = async () => {
+//   await analyticsStore.enrichmentByProducts();
+// };
+const previousDates = ref([...analyticsStore.filters.dates]); // Храним предыдущие даты
+
+const handleFiltersDatesChange = async (isOpen) => {
+  if (!isOpen) {
+    if (
+      JSON.stringify(previousDates.value) !==
+      JSON.stringify(analyticsStore.filters.dates)
+    ) {
+      previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
+      await analyticsStore.enrichmentByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+    }
+  }
+};
 
 // console.log(cardList);
 
@@ -118,12 +135,13 @@ const disabledDate = (current) => {
 
             <div class="period-report__items">
               <div class="period-report__item">
-                <a-form-item label=" ">
+                <a-form-item label="Укажите диапазон">
                   <a-range-picker
                     v-model:value="analyticsStore.filters.dates"
                     :format="dateFormat"
                     :disabled-date="disabledDate"
                     :allowClear="false"
+                    @openChange="handleFiltersDatesChange"
                   />
 <!--                  :default-picker-value="[getPreviousMonth(), getCurrentMonth()]"-->
                 </a-form-item>
@@ -170,52 +188,41 @@ const disabledDate = (current) => {
       </a-form>
 
       <div class="table">
-        <!--      <NeCard-->
-        <!--        title="Чистая прибыль / Маржинальность"-->
-        <!--        info="Прибыль за вычетом всех расходов (себестоимость, логистика, хранение, штрафы, комиссия маркетплейса, реклама, налог, фф, опер. расходы и тд)"-->
-        <!--        :parameters="[-->
-        <!--          {-->
-        <!--            value: 94, symbol: ''-->
-        <!--            },-->
-        <!--          {-->
-        <!--            value: 22.5, symbol: '%'-->
-        <!--          }-->
-        <!--          ]"-->
-        <!--      />-->
-
-        <!--      <NeCard-->
-        <!--        title="Прибыль без операционных расходов"-->
-        <!--        info="Прибыль без учета операционных расходов"-->
-        <!--        :parameters="[-->
-        <!--          {-->
-        <!--            value: 10, symbol: ''-->
-        <!--          }-->
-        <!--          ]"-->
-        <!--      />-->
-
         <NeCard
           title="Продажи"
           info="Сумма продаж с учетом применения СПП и ВБ кошелька"
           :parameters="[
-          { value: analyticsStore.stats.sales, symbol: '₽', roundTheValue: true },
-          { value: analyticsStore.stats.totalSales, symbol: 'шт'}
-        ]"
+            { value: analyticsStore.stats.retail_amount, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.quantitySale, symbol: 'шт'}
+          ]"
+          :loading="analyticsStore.loadingEnrichmentByProducts"
+        />
+
+        <NeCard
+          title="Компенсация"
+          :parameters="[
+            { value: analyticsStore.stats.ppvz_for_pay, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.quantityCompensation, symbol: 'шт'}
+          ]"
+          :loading="analyticsStore.loadingEnrichmentByProducts"
         />
 
         <NeCard
           title="Реализация"
           info="Сумма продаж до применения СПП и ВБ кошелька"
           :parameters="[
-          { value: analyticsStore.stats.realisation, symbol: '₽', roundTheValue: true }
-        ]"
+            { value: analyticsStore.stats.retail_price, symbol: '₽', roundTheValue: true }
+          ]"
+          :loading="analyticsStore.loadingEnrichmentByProducts"
         />
 
         <NeCard
           title="Логистика"
           info="Стоимость доставки товара до покупателя с учетом процента выкупа"
           :parameters="[
-          { value: analyticsStore.stats.logistics, symbol: '₽', roundTheValue: true }
-        ]"
+            { value: analyticsStore.stats.delivery_rub, symbol: '₽', roundTheValue: true }
+          ]"
+          :loading="analyticsStore.loadingEnrichmentByProducts"
         />
       </div>
     </template>
@@ -247,8 +254,7 @@ const disabledDate = (current) => {
 
 .filter__items {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-column-gap: 10px;
+  grid-template-columns: 1fr;
 }
 
 .table {
@@ -259,7 +265,7 @@ const disabledDate = (current) => {
 
 @media (min-width: 680px) {
   .form__items {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .period-report__items {
@@ -279,10 +285,11 @@ const disabledDate = (current) => {
 @media (min-width: 840px) {
   .form__items {
     grid-template-columns: 1fr 1fr;
+    grid-column-gap: 10px;
   }
 
   .period-report__items {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .table {
@@ -291,6 +298,10 @@ const disabledDate = (current) => {
 }
 
 @media (min-width: 1180px) {
+  .period-report__items {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .table {
     grid-template-columns: repeat(5, 1fr);
   }

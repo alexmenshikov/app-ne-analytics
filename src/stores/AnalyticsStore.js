@@ -1,10 +1,12 @@
-import {defineStore} from "pinia";
+import { defineStore } from "pinia";
+import { computed, nextTick, ref, watch } from "vue";
 import dayjs from "dayjs";
-import isoWeek from 'dayjs/plugin/isoWeek';
-import {getSellerInfo} from "../composible/getSellerInfo.js";
-import {getWbArticles} from "../composible/getWbArticles.js";
-import {getSalesReport} from "../composible/getSalesReport.js";
-import {computed, nextTick, ref, watch} from "vue";
+import isoWeek from "dayjs/plugin/isoWeek";
+import { getSellerInfo } from "../composible/getSellerInfo.js";
+import { getWbArticles } from "../composible/getWbArticles.js";
+import { getSalesReport } from "../composible/getSalesReport.js";
+import { createPaidStorage } from "../composible/createPaidStorage.js";
+import { getPaidStorage } from "../composible/getPaidStorage.js";
 
 dayjs.extend(isoWeek);
 
@@ -26,13 +28,40 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     categories: [],
     articles: []
   });
-  // const stats = ref({
-  //   sales: 0, // продажи (сумма)
-  //   totalSales: 0, // продажи (количество)
-  //   realisation: 0, // реализация
-  //   logistics: 0, // логистика
-  // });
+
+  const stats = computed(() => {
+    let filteredProducts;
+
+    if (filters.value.articles.length === 0) {
+      const validIds = new Set(optionArticles.value.map(opt => opt.value));
+      filteredProducts = byProducts.value.filter(product => validIds.has(product.nm_id));
+    } else {
+      const validIds = new Set(optionArticles.value.map(opt => opt.value));
+      const matchingIds = filters.value.articles.filter(id => validIds.has(id));
+
+      if (matchingIds.length > 0) {
+        filteredProducts = byProducts.value.filter(product => matchingIds.includes(product.nm_id));
+      } else {
+        filteredProducts = byProducts.value.filter(product => filters.value.articles.includes(product.nm_id));
+      }
+    }
+
+    return filteredProducts.reduce(
+      (acc, product) => {
+        acc.retail_amount += product.retail_amount;
+        acc.ppvz_for_pay += product.ppvz_for_pay;
+        acc.quantitySale += product.quantitySale;
+        acc.quantityCompensation += product.quantityCompensation;
+        acc.retail_price += product.retail_price;
+        acc.delivery_rub += product.delivery_rub;
+        return acc;
+      },
+      { retail_amount: 0, ppvz_for_pay: 0, quantitySale: 0, quantityCompensation: 0, retail_price: 0, delivery_rub: 0 }
+    );
+  });
+
   const loading = ref(0);
+  const loadingEnrichmentByProducts = ref(false);
 
   const optionCompanies = computed(() => {
     return companyArray.value.map(company => ({
@@ -61,7 +90,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       .filter(article => selectedCategories.length === 0 || selectedCategories.includes(article.category))
       .map(article => ({
         value: article.nmID,
-        label: `${article.vendorCode}-${article.category}`
+        label: article.vendorCode
       }));
   });
 
@@ -87,73 +116,6 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
   });
 
-  const stats = computed(() => {
-    let filteredProducts;
-
-    if (filters.value.articles.length === 0) {
-      const validIds = new Set(optionArticles.value.map(opt => opt.value));
-      filteredProducts = byProducts.value.filter(product => validIds.has(product.nm_id));
-    } else {
-      const validIds = new Set(optionArticles.value.map(opt => opt.value));
-      const matchingIds = filters.value.articles.filter(id => validIds.has(id));
-
-      if (matchingIds.length > 0) {
-        filteredProducts = byProducts.value.filter(product => matchingIds.includes(product.nm_id));
-      } else {
-        filteredProducts = byProducts.value.filter(product => filters.value.articles.includes(product.nm_id));
-      }
-    }
-
-    return filteredProducts.reduce(
-      (acc, product) => {
-        acc.sales += product.ppvz_for_pay;
-        acc.totalSales += product.quantity;
-        acc.realisation += product.retail_price;
-        acc.logistics += product.delivery_rub;
-        return acc;
-      },
-      { sales: 0, totalSales: 0, realisation: 0, logistics: 0 }
-    );
-  });
-  // watch(() => filters.value, () => {
-  //   let filteredProducts;
-  //
-  //   console.log('byProducts:', byProducts.value);
-  //   console.log('optionArticles:', optionArticles.value);
-  //   console.log('filters:', filters.value);
-  //
-  //   if (filters.value.articles.length === 0) {
-  //     // Если articles пуст, фильтруем byProducts по nm_id из optionArticles
-  //     const validIds = new Set(optionArticles.value.map(opt => opt.value));
-  //     filteredProducts = byProducts.value.filter(product => validIds.has(product.nm_id));
-  //   } else {
-  //     // Если articles не пуст, ищем совпадения в optionArticles
-  //     const validIds = new Set(optionArticles.value.map(opt => opt.value));
-  //     const matchingIds = filters.value.articles.filter(id => validIds.has(id));
-  //
-  //     if (matchingIds.length > 0) {
-  //       // Нашли совпадения в optionArticles, фильтруем byProducts
-  //       filteredProducts = byProducts.value.filter(product => matchingIds.includes(product.nm_id));
-  //     } else {
-  //       // Если совпадений нет, ищем только в byProducts
-  //       filteredProducts = byProducts.value.filter(product => filters.value.articles.includes(product.nm_id));
-  //     }
-  //   }
-  //
-  //   console.log('Отфильтрованные товары:', filteredProducts);
-  //   // Считаем итоговые значения
-  //   stats.value = filteredProducts.reduce(
-  //     (acc, product) => {
-  //       acc.sales += product.ppvz_for_pay;
-  //       acc.totalSales += product.quantity;
-  //       acc.realisation += product.retail_price;
-  //       acc.logistics += product.delivery_rub;
-  //       return acc;
-  //     },
-  //     {sales: 0, totalSales: 0, realisation: 0, logistics: 0}
-  //   );
-  // }, { deep: true });
-
   const enrichmentCompaniesInfo = async() => {
     loading.value += 1;
     for (const company of companyArray.value) {
@@ -176,13 +138,26 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   };
 
   const enrichmentByProducts = async() => {
+    loadingEnrichmentByProducts.value = true;
     for (const company of companyArray.value) {
       byProducts.value = await getSalesReport({
         apiToken: company.apiToken,
         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
       });
+
+      // const taskIdPaidStorage = await createPaidStorage({
+      //   apiToken: company.apiToken,
+      //   dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+      //   dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+      // });
+      //
+      // await getPaidStorage({
+      //   apiToken: company.apiToken,
+      //   task_id: taskIdPaidStorage
+      // });
     }
+    loadingEnrichmentByProducts.value = false;
   };
 
   return {
@@ -192,6 +167,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     filters,
     stats,
     loading,
+    loadingEnrichmentByProducts,
     optionCompanies,
     optionCategories,
     optionArticles,

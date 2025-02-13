@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { PropType } from "vue";
 import {
-  Statistic as AStatistic,
   Tooltip as ATooltip,
+  SkeletonInput as ASkeletonInput,
 } from "ant-design-vue";
 import {
   InfoCircleOutlined
@@ -26,10 +26,14 @@ const props = defineProps({
   parameters: {
     type: Array as PropType<Parametr[]>,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
 
-const formatPrice = (value) => {
+const formatPrice = (value: number) => {
   return new Intl.NumberFormat("ru-RU").format(value);
 };
 </script>
@@ -40,7 +44,7 @@ const formatPrice = (value) => {
       <div v-if="title" class="card__header-title">
         {{ title }}
       </div>
-      <a-tooltip placement="top">
+      <a-tooltip v-if="info" placement="top">
         <template #title>
           <span>{{ info }}</span>
         </template>
@@ -49,7 +53,9 @@ const formatPrice = (value) => {
     </div>
 
     <div class="card__body">
-      <div class="card__body-value" v-for="(parameter, index) in parameters" :key="index">
+      <a-skeleton-input v-if="loading" style="width: 100%" active size="default" />
+
+      <div v-else class="card__body-value" v-for="(parameter, index) in parameters" :key="index">
         <template v-if="index === 0">
           {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parameter.value.toFixed(2)) }} {{ parameter.symbol }}
         </template>
@@ -59,31 +65,24 @@ const formatPrice = (value) => {
       </div>
     </div>
   </div>
-
-<!--  <div class="card__body-value">-->
-<!--    {{ formatPrice(1000) }} ₽ / {{ formatPrice(2000) }} шт-->
-<!--  </div>-->
 </template>
 
 <style scoped>
 .card {
   background-color: #fff;
-  //border-radius: 10px;
   border-radius: 16px;
   border: 1px solid #d9d9d9;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  //padding: 12px;
   padding: 15px;
-  //box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
 }
 
 .card__header {
   align-items: flex-start;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
 }
 
 .card__header-title {
@@ -125,7 +124,6 @@ const formatPrice = (value) => {
     align-items: flex-start;
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
   }
 
   .card__header-title {
