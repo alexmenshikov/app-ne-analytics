@@ -7,6 +7,7 @@ import { getWbArticles } from "../composible/getWbArticles.js";
 import { getSalesReport } from "../composible/getSalesReport.js";
 import { createPaidStorage } from "../composible/createPaidStorage.js";
 import { getPaidStorage } from "../composible/getPaidStorage.js";
+import { enrichByProductsPaidStorage } from "../composible/enrichByProductsPaidStorage.js";
 
 dayjs.extend(isoWeek);
 
@@ -140,11 +141,39 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   const enrichmentByProducts = async() => {
     loadingEnrichmentByProducts.value = true;
     for (const company of companyArray.value) {
-      byProducts.value = await getSalesReport({
-        apiToken: company.apiToken,
-        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-      });
+      try {
+        byProducts.value = await getSalesReport({
+          apiToken: company.apiToken,
+          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+        });
+
+        const taskIdPaidStorage = await createPaidStorage({
+          apiToken: company.apiToken,
+          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+        });
+
+
+        const responsePaidStorage = await getPaidStorage({
+          apiToken: company.apiToken,
+          task_id: taskIdPaidStorage
+        });
+
+        byProducts.value = enrichByProductsPaidStorage({
+          byProducts: byProducts.value,
+          responseData: responsePaidStorage
+        });
+
+      } catch (error) {
+        console.error(error);
+      }
+
+      // byProducts.value = await getSalesReport({
+      //   apiToken: company.apiToken,
+      //   dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+      //   dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+      // });
 
       // const taskIdPaidStorage = await createPaidStorage({
       //   apiToken: company.apiToken,

@@ -15,7 +15,7 @@ export async function createPaidStorage({ apiToken, dateFrom, dateTo }) {
       }
     );
 
-    return response.data.taskId || null;
+    return response.data.data.taskId;
   } catch (error) {
     message.error("Ошибка при создании отчёта для платного хранения");
     return null;
