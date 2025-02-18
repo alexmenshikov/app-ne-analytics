@@ -8,6 +8,8 @@ import { getSalesReport } from "../composible/getSalesReport.js";
 import { createPaidStorage } from "../composible/createPaidStorage.js";
 import { getPaidStorage } from "../composible/getPaidStorage.js";
 import { enrichByProductsPaidStorage } from "../composible/enrichByProductsPaidStorage.js";
+import { updateByProductsWithSales } from "../composible/updateByProductsWithSales.js";
+import { updateByProductsWithStorage } from "../composible/updateByProductsWithStorage.js";
 
 dayjs.extend(isoWeek);
 
@@ -55,9 +57,10 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.quantityCompensation += product.quantityCompensation;
         acc.retail_price += product.retail_price;
         acc.delivery_rub += product.delivery_rub;
+        acc.warehousePrice += product.warehousePrice;
         return acc;
       },
-      { retail_amount: 0, ppvz_for_pay: 0, quantitySale: 0, quantityCompensation: 0, retail_price: 0, delivery_rub: 0 }
+      { retail_amount: 0, ppvz_for_pay: 0, quantitySale: 0, quantityCompensation: 0, retail_price: 0, delivery_rub: 0, warehousePrice: 0 }
     );
   });
 
@@ -140,54 +143,44 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
   const enrichmentByProducts = async() => {
     loadingEnrichmentByProducts.value = true;
+    byProducts.value = [];
+
     for (const company of companyArray.value) {
       try {
-        byProducts.value = await getSalesReport({
+        const salesData = await getSalesReport({
           apiToken: company.apiToken,
           dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
           dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         });
 
+        byProducts.value = updateByProductsWithSales(byProducts.value, salesData);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    loadingEnrichmentByProducts.value = false;
+  };
+
+  const enrichmentByProductsWithStorage = async() => {
+    for (const company of companyArray.value) {
+      try {
         const taskIdPaidStorage = await createPaidStorage({
           apiToken: company.apiToken,
           dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
           dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         });
 
-
-        const responsePaidStorage = await getPaidStorage({
+        const storageData = await getPaidStorage({
           apiToken: company.apiToken,
           task_id: taskIdPaidStorage
         });
 
-        byProducts.value = enrichByProductsPaidStorage({
-          byProducts: byProducts.value,
-          responseData: responsePaidStorage
-        });
-
+        byProducts.value = updateByProductsWithStorage(byProducts.value, storageData);
       } catch (error) {
         console.error(error);
       }
-
-      // byProducts.value = await getSalesReport({
-      //   apiToken: company.apiToken,
-      //   dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-      //   dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-      // });
-
-      // const taskIdPaidStorage = await createPaidStorage({
-      //   apiToken: company.apiToken,
-      //   dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-      //   dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-      // });
-      //
-      // await getPaidStorage({
-      //   apiToken: company.apiToken,
-      //   task_id: taskIdPaidStorage
-      // });
     }
-    loadingEnrichmentByProducts.value = false;
-  };
+  }
 
   return {
     companyArray,
@@ -203,6 +196,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentCompaniesInfo,
     enrichmentWbArticles,
     enrichmentByProducts,
+    enrichmentByProductsWithStorage,
   }
 });
 

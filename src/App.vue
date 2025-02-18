@@ -1,11 +1,10 @@
 <script setup>
-import {computed, onMounted, ref, h, defineComponent, watch} from "vue";
+import { computed, onMounted, ref, h, defineComponent, watch } from "vue";
 import {
   ConfigProvider as AConfigProvider,
   Spin as ASpin,
   Form as AForm,
   FormItem as AFormItem,
-  Select as ASelect,
   RangePicker as ARangePicker,
 } from "ant-design-vue";
 import ruRu from "ant-design-vue/es/locale/ru_RU";
@@ -13,36 +12,20 @@ import dayjs from "dayjs";
 import ru from "dayjs/locale/ru";
 import utc from "dayjs/plugin/utc";
 import { useAnalyticsStore } from "./stores/AnalyticsStore.js";
-import { getWbArticles } from "./composible/getWbArticles.js";
-import { getSellerInfo } from "./composible/getSellerInfo.js";
 import NeCustomSelect from "./components/NeCustomSelect.vue";
 import NeCard from "./components/NeCard.vue";
+import {getSalesReport} from "./composible/getSalesReport.js";
+import {updateByProductsWithSales} from "./composible/updateByProductsWithSales.js";
+import { createPaidStorage } from "./composible/createPaidStorage.js";
+import { getPaidStorage } from "./composible/getPaidStorage.js";
+import { updateByProductsWithStorage } from "./composible/updateByProductsWithStorage.js";
 
 dayjs.locale(ru);
 dayjs.extend(utc);
 
 const analyticsStore = useAnalyticsStore();
 
-const companyArray = [
-  {
-    id: 1,
-    name: "Ne Vi",
-    apiToken: "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwMTIwdjEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc1MzgyNTE3NiwiaWQiOiIwMTk0YWM0Ny1kNWI3LTdjYzItYTRmZC1hYzgwNzI4ZjU3YTAiLCJpaWQiOjE5NjI0NzM2LCJvaWQiOjQxMjc0NjcsInMiOjEwNzM3NDE5MjYsInNpZCI6Ijg0YjlkNmQzLTAxMTItNDBiZi05MTZiLWVlZDFkOGY3NjBhNSIsInQiOmZhbHNlLCJ1aWQiOjE5NjI0NzM2fQ.9rXa96vOM8BIH5HcHYMyUWqI7G3tbcrEgpiqmAI0GQQisRlEooezoKxi-zcem8JMmJtsrejJC4rybYCW-LaZ6g",
-  },
-];
-
-const companySelected = ref([1]);
-const companyOptions = companyArray.map(company => ({
-  label: company.name,
-  value: company.id
-}));
-
-// const cardList = ref([]);
-// const sellerInfo = ref([]);
-
 const dateFormat = "DD MMM YYYY";
-
-// const value4 = ref([]);
 
 onMounted(async () => {
   await analyticsStore.enrichmentCompaniesInfo();
@@ -115,7 +98,11 @@ const disabledDate = (current) => {
 
 // const getPreviousMonth = () => dayjs().subtract(1, "month").startOf("month"); // Предыдущий месяц
 // const getCurrentMonth = () => dayjs().startOf("month"); // Текущий месяц
-
+async function updateData(field) {
+  if (field === "warehousePrice") {
+    await analyticsStore.enrichmentByProductsWithStorage();
+  }
+}
 </script>
 
 <template>
@@ -195,6 +182,7 @@ const disabledDate = (current) => {
             { value: analyticsStore.stats.retail_amount, symbol: '₽', roundTheValue: true },
             { value: analyticsStore.stats.quantitySale, symbol: 'шт'}
           ]"
+          fieldName="retail_amount"
           :loading="analyticsStore.loadingEnrichmentByProducts"
         />
 
@@ -204,6 +192,7 @@ const disabledDate = (current) => {
             { value: analyticsStore.stats.ppvz_for_pay, symbol: '₽', roundTheValue: true },
             { value: analyticsStore.stats.quantityCompensation, symbol: 'шт'}
           ]"
+          fieldName="ppvz_for_pay"
           :loading="analyticsStore.loadingEnrichmentByProducts"
         />
 
@@ -213,6 +202,7 @@ const disabledDate = (current) => {
           :parameters="[
             { value: analyticsStore.stats.retail_price, symbol: '₽', roundTheValue: true }
           ]"
+          fieldName="retail_price"
           :loading="analyticsStore.loadingEnrichmentByProducts"
         />
 
@@ -222,7 +212,20 @@ const disabledDate = (current) => {
           :parameters="[
             { value: analyticsStore.stats.delivery_rub, symbol: '₽', roundTheValue: true }
           ]"
+          fieldName="delivery_rub"
           :loading="analyticsStore.loadingEnrichmentByProducts"
+        />
+
+        <NeCard
+          title="Хранение"
+          info="Стоимость хранения товара на складах маркетплейса"
+          :parameters="[
+            { value: analyticsStore.stats.warehousePrice, symbol: '₽', roundTheValue: true }
+          ]"
+          fieldName="warehousePrice"
+          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :get-data="analyticsStore.stats.warehousePrice ? false : true"
+          @get="updateData($event)"
         />
       </div>
     </template>

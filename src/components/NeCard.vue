@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { PropType } from "vue";
+import { PropType, ref } from "vue";
 import {
+  Button as AButton,
   Tooltip as ATooltip,
   SkeletonInput as ASkeletonInput,
 } from "ant-design-vue";
 import {
-  InfoCircleOutlined
-} from '@ant-design/icons-vue';
+  InfoCircleOutlined,
+  DownloadOutlined
+} from "@ant-design/icons-vue";
 
 interface Parametr {
   value: number;
@@ -27,7 +29,15 @@ const props = defineProps({
     type: Array as PropType<Parametr[]>,
     default: () => []
   },
+  fieldName: {
+    type: String,
+    required: true
+  },
   loading: {
+    type: Boolean,
+    default: false
+  },
+  getData: {
     type: Boolean,
     default: false
   }
@@ -36,6 +46,15 @@ const props = defineProps({
 const formatPrice = (value: number) => {
   return new Intl.NumberFormat("ru-RU").format(value);
 };
+
+const emit = defineEmits(["get"]);
+
+const disabledButton = ref(false);
+
+function get() {
+  disabledButton.value = true;
+  emit('get', props.fieldName);
+}
 </script>
 
 <template>
@@ -53,16 +72,38 @@ const formatPrice = (value: number) => {
     </div>
 
     <div class="card__body">
-      <a-skeleton-input v-if="loading" style="width: 100%" active size="default" />
+      <template v-if="getData">
+        <a-button
+          size="small" style="margin-top: 5px;"
+          :disabled="disabledButton"
+          @click="get"
+        >
+          <template #icon><DownloadOutlined /></template>Получить
+        </a-button>
+      </template>
 
-      <div v-else class="card__body-value" v-for="(parameter, index) in parameters" :key="index">
-        <template v-if="index === 0">
-          {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parameter.value.toFixed(2)) }} {{ parameter.symbol }}
-        </template>
-        <template v-else>
-          &nbsp;/ {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parameter.value.toFixed(2)) }} {{ parameter.symbol }}
-        </template>
-      </div>
+      <template v-else>
+        <a-skeleton-input v-if="loading" style="width: 100%" active size="default" />
+
+        <div v-else class="card__body-value" v-for="(parameter, index) in parameters" :key="index">
+          <template v-if="index === 0">
+            <div v-if="parameter.value || parameter.value === 0">
+              {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parseFloat(parameter.value.toFixed(2))) }} {{ parameter.symbol }}
+            </div>
+            <div v-else>
+              Нет данных
+            </div>
+          </template>
+          <template v-else>
+            <div v-if="parameter.value || parameter.value === 0">
+              &nbsp;/ {{ parameter.roundTheValue ? formatPrice(Math.round(parameter.value)) : formatPrice(parseFloat(parameter.value.toFixed(2))) }} {{ parameter.symbol }}
+            </div>
+            <div v-else>
+              &nbsp;/ Нет данных
+            </div>
+          </template>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -70,13 +111,13 @@ const formatPrice = (value: number) => {
 <style scoped>
 .card {
   background-color: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
   border: 1px solid #d9d9d9;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 15px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
+  //box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
 }
 
 .card__header {
