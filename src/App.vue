@@ -14,8 +14,8 @@ import utc from "dayjs/plugin/utc";
 import { useAnalyticsStore } from "./stores/AnalyticsStore.js";
 import NeCustomSelect from "./components/NeCustomSelect.vue";
 import NeCard from "./components/NeCard.vue";
-import {getSalesReport} from "./composible/getSalesReport.js";
-import {updateByProductsWithSales} from "./composible/updateByProductsWithSales.js";
+import {getSales} from "./composible/getSales.js";
+import {updateSalesByProducts} from "./composible/updateSalesByProducts.js";
 import { createPaidStorage } from "./composible/createPaidStorage.js";
 import { getPaidStorage } from "./composible/getPaidStorage.js";
 import { updateByProductsWithStorage } from "./composible/updateByProductsWithStorage.js";
@@ -30,7 +30,7 @@ const dateFormat = "DD MMM YYYY";
 onMounted(async () => {
   await analyticsStore.enrichmentCompaniesInfo();
   await analyticsStore.enrichmentWbArticles();
-  await analyticsStore.enrichmentByProducts();
+  await analyticsStore.addSaleByProducts();
   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
 
   // cardList.value = await getWbArticles({ apiToken: companyArray[0].apiToken });
@@ -53,7 +53,7 @@ const handleFiltersDatesChange = async (isOpen) => {
       JSON.stringify(analyticsStore.filters.dates)
     ) {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
-      await analyticsStore.enrichmentByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+      await analyticsStore.addSaleByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
       await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
     }
   }
@@ -100,7 +100,9 @@ const disabledDate = (current) => {
 
 // const getPreviousMonth = () => dayjs().subtract(1, "month").startOf("month"); // Предыдущий месяц
 // const getCurrentMonth = () => dayjs().startOf("month"); // Текущий месяц
-async function updateData(field) {
+async function updateData(value) {
+  const field = value;
+
   if (field === "warehousePrice") {
     await analyticsStore.enrichmentByProductsWithStorage();
   } else if (field === "acceptanceReport") {
@@ -183,20 +185,20 @@ async function updateData(field) {
           title="Продажи"
           info="Сумма продаж с учетом применения СПП и ВБ кошелька"
           :parameters="[
-            { value: analyticsStore.stats.retail_amount, symbol: '₽', roundTheValue: true },
-            { value: analyticsStore.stats.quantitySale, symbol: 'шт'}
+            { value: analyticsStore.stats.sales, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.salesCount, symbol: 'шт'}
           ]"
-          fieldName="retail_amount"
+          fieldName="sales"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
           title="Компенсация"
           :parameters="[
-            { value: analyticsStore.stats.ppvz_for_pay, symbol: '₽', roundTheValue: true },
-            { value: analyticsStore.stats.quantityCompensation, symbol: 'шт'}
+            { value: analyticsStore.stats.compensation, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.compensationCount, symbol: 'шт'}
           ]"
-          fieldName="ppvz_for_pay"
+          fieldName="compensation"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
@@ -204,9 +206,9 @@ async function updateData(field) {
           title="Реализация"
           info="Сумма продаж до применения СПП и ВБ кошелька"
           :parameters="[
-            { value: analyticsStore.stats.retail_price, symbol: '₽', roundTheValue: true }
+            { value: analyticsStore.stats.realisation, symbol: '₽', roundTheValue: true }
           ]"
-          fieldName="retail_price"
+          fieldName="realisation"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
@@ -214,9 +216,9 @@ async function updateData(field) {
           title="Логистика"
           info="Стоимость доставки товара до покупателя с учетом процента выкупа"
           :parameters="[
-            { value: analyticsStore.stats.delivery_rub, symbol: '₽', roundTheValue: true }
+            { value: analyticsStore.stats.logistics, symbol: '₽', roundTheValue: true }
           ]"
-          fieldName="delivery_rub"
+          fieldName="logistics"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
@@ -227,11 +229,11 @@ async function updateData(field) {
             { value: analyticsStore.stats.warehousePrice, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="warehousePrice"
-          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
           :get-data="analyticsStore.stats.warehousePrice ? false : true"
           @get="updateData($event)"
         />
-
+<!--        acceptanceSum-->
         <NeCard
           title="Платная приемка"
           info=""
@@ -239,7 +241,7 @@ async function updateData(field) {
             { value: analyticsStore.stats.acceptanceReport, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="acceptanceReport"
-          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
       </div>
     </template>

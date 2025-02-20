@@ -15,7 +15,7 @@ export function updateByProductsWithAcceptanceReport(byProductsArray, acceptance
         storage.nmID === product.nm_id
     );
 
-    // Суммируем warehousePrice, если есть совпадения
+    // Суммируем storage, если есть совпадения
     const totalAcceptanceReport = matchingAcceptanceReport.reduce(
       (sum, item) => sum + item.total,
       0

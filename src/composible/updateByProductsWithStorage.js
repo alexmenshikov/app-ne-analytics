@@ -8,7 +8,7 @@ export function updateByProductsWithStorage(byProductsArray, storageData) {
         storage.brand === product.brand_name
     );
 
-    // Суммируем warehousePrice, если есть совпадения
+    // Суммируем storage, если есть совпадения
     const totalWarehousePrice = matchingStorageItems.reduce(
       (sum, item) => sum + item.warehousePrice,
       0

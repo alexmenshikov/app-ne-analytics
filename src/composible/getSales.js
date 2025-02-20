@@ -1,7 +1,7 @@
 import axios from "axios";
 import { message } from "ant-design-vue";
 
-export async function getSalesReport({ apiToken, dateFrom, dateTo }) {
+export async function getSales({ apiToken, dateFrom, dateTo }) {
   try {
     let dataProducts = [];
     let rrdid = 0;
