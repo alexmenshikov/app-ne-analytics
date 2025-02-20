@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, nextTick, ref, watch } from "vue";
+import {message} from "ant-design-vue";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import { getSellerInfo } from "../composible/getSellerInfo.js";
@@ -7,9 +8,10 @@ import { getWbArticles } from "../composible/getWbArticles.js";
 import { getSalesReport } from "../composible/getSalesReport.js";
 import { createPaidStorage } from "../composible/createPaidStorage.js";
 import { getPaidStorage } from "../composible/getPaidStorage.js";
-import { enrichByProductsPaidStorage } from "../composible/enrichByProductsPaidStorage.js";
 import { updateByProductsWithSales } from "../composible/updateByProductsWithSales.js";
 import { updateByProductsWithStorage } from "../composible/updateByProductsWithStorage.js";
+import { getAcceptanceReport } from "../composible/getAcceptanceReport.js";
+import {updateByProductsWithAcceptanceReport} from "../composible/updateByProductsWithAcceptanceReport.js";
 
 dayjs.extend(isoWeek);
 
@@ -51,21 +53,31 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
     return filteredProducts.reduce(
       (acc, product) => {
-        acc.retail_amount += product.retail_amount;
-        acc.ppvz_for_pay += product.ppvz_for_pay;
-        acc.quantitySale += product.quantitySale;
-        acc.quantityCompensation += product.quantityCompensation;
-        acc.retail_price += product.retail_price;
-        acc.delivery_rub += product.delivery_rub;
-        acc.warehousePrice += product.warehousePrice;
+        acc.retail_amount += product.retail_amount; // Продажи (сумма)
+        acc.quantitySale += product.quantitySale; // Продажи (количество)
+        acc.ppvz_for_pay += product.ppvz_for_pay; // Компенсация (сумма)
+        acc.quantityCompensation += product.quantityCompensation; // Компенсация (количество)
+        acc.retail_price += product.retail_price; // Реализация
+        acc.delivery_rub += product.delivery_rub; // Логистика
+        acc.warehousePrice += product.warehousePrice; // Хранение
+        acc.acceptanceReport += product.acceptanceReport; // Платная приёмка
         return acc;
       },
-      { retail_amount: 0, ppvz_for_pay: 0, quantitySale: 0, quantityCompensation: 0, retail_price: 0, delivery_rub: 0, warehousePrice: 0 }
+      {
+        retail_amount: 0,
+        quantitySale: 0,
+        ppvz_for_pay: 0,
+        quantityCompensation: 0,
+        retail_price: 0,
+        delivery_rub: 0,
+        warehousePrice: 0,
+        acceptanceReport: 0
+      }
     );
   });
 
   const loading = ref(0);
-  const loadingEnrichmentByProducts = ref(false);
+  const loadingEnrichmentByProducts = ref(0);
 
   const optionCompanies = computed(() => {
     return companyArray.value.map(company => ({
@@ -120,6 +132,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
   });
 
+  // Добавление информации о КОМПАНИЯХ
   const enrichmentCompaniesInfo = async() => {
     loading.value += 1;
     for (const company of companyArray.value) {
@@ -133,6 +146,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     loading.value -= 1;
   };
 
+  // Добавление информации об АРТИКУЛАХ
   const enrichmentWbArticles = async() => {
     loading.value += 1;
     for (const company of companyArray.value) {
@@ -141,8 +155,9 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     loading.value -= 1;
   };
 
+  // Добавление информации о ПРОДАЖАХ
   const enrichmentByProducts = async() => {
-    loadingEnrichmentByProducts.value = true;
+    loadingEnrichmentByProducts.value += 1;
     byProducts.value = [];
 
     for (const company of companyArray.value) {
@@ -158,28 +173,102 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         console.error(error);
       }
     }
-    loadingEnrichmentByProducts.value = false;
+    loadingEnrichmentByProducts.value -= 1;
   };
 
+  // Добавление информации о ПЛАТНОМ ХРАНЕНИИ
   const enrichmentByProductsWithStorage = async() => {
+    async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
+      let currentDate = dayjs(dateFrom);
+      const endDate = dayjs(dateTo);
+      const loadingGetPaidStorage = message.loading("Загрузка отчёта о платном хранении", 0);
+
+      while (currentDate.isBefore(endDate)) {
+        const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+
+        try {
+          const taskIdPaidStorage = await createPaidStorage({
+            apiToken: apiToken,
+            dateFrom: currentDate.format('YYYY-MM-DD'),
+            dateTo: batchEndDate.format('YYYY-MM-DD'),
+          });
+
+          const storageData = await getPaidStorage({
+            apiToken: apiToken,
+            task_id: taskIdPaidStorage
+          });
+
+          byProducts.value = updateByProductsWithStorage(byProducts.value, storageData);
+        } catch (error) {
+          loadingGetPaidStorage();
+          console.error(error);
+        }
+
+        currentDate = currentDate.add(limit, 'day');
+
+        // Добавляем задержку в 1 минуту между запросами
+        if (currentDate.isBefore(endDate)) {
+          await new Promise(resolve => setTimeout(resolve, 65000));
+        }
+      }
+
+      loadingGetPaidStorage();
+    }
+
+    // Делим запросы и отправляем каждую минуту по 8 дней
     for (const company of companyArray.value) {
-      try {
-        const taskIdPaidStorage = await createPaidStorage({
-          apiToken: company.apiToken,
-          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-        });
+      await fetchDataInBatches({
+        apiToken: company.apiToken,
+        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+        limit: 8
+      });
+    }
+  }
 
-        const storageData = await getPaidStorage({
-          apiToken: company.apiToken,
-          task_id: taskIdPaidStorage
-        });
+  const enrichmentByProductsWithAcceptanceReport = async() => {
+    async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
+      let currentDate = dayjs(dateFrom);
+      const endDate = dayjs(dateTo);
+      const loadingAcceptanceReport = message.loading("Загрузка отчёта о платной приёмке", 0);
 
-        byProducts.value = updateByProductsWithStorage(byProducts.value, storageData);
-      } catch (error) {
-        console.error(error);
+      while (currentDate.isBefore(endDate)) {
+        const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+
+        try {
+          const acceptanceReportData = await getAcceptanceReport({
+            apiToken: apiToken,
+            dateFrom: currentDate.format('YYYY-MM-DD'),
+            dateTo: batchEndDate.format('YYYY-MM-DD'),
+          });
+
+          byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
+        } catch (error) {
+          loadingAcceptanceReport();
+          console.error(error);
+        }
+
+        currentDate = currentDate.add(limit, 'day');
+
+        // Добавляем задержку в 1 минуту между запросами
+        if (currentDate.isBefore(endDate)) {
+          await new Promise(resolve => setTimeout(resolve, 65000));
+        }
+
+        loadingAcceptanceReport();
       }
     }
+
+    loadingEnrichmentByProducts.value += 1;
+    for (const company of companyArray.value) {
+      await fetchDataInBatches({
+        apiToken: company.apiToken,
+        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+        limit: 31
+      });
+    }
+    loadingEnrichmentByProducts.value -= 1;
   }
 
   return {
@@ -197,6 +286,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentWbArticles,
     enrichmentByProducts,
     enrichmentByProductsWithStorage,
+    enrichmentByProductsWithAcceptanceReport
   }
 });
 

@@ -52,7 +52,7 @@ const emit = defineEmits(["get"]);
 const disabledButton = ref(false);
 
 function get() {
-  disabledButton.value = true;
+  // disabledButton.value = true;
   emit('get', props.fieldName);
 }
 </script>
@@ -136,6 +136,7 @@ function get() {
 .card__body {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
 }
 
 .card__body-value {

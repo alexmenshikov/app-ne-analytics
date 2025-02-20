@@ -31,6 +31,7 @@ onMounted(async () => {
   await analyticsStore.enrichmentCompaniesInfo();
   await analyticsStore.enrichmentWbArticles();
   await analyticsStore.enrichmentByProducts();
+  await analyticsStore.enrichmentByProductsWithAcceptanceReport();
 
   // cardList.value = await getWbArticles({ apiToken: companyArray[0].apiToken });
   // sellerInfo.value = await getSellerInfo({ apiToken: companyArray[0].apiToken });
@@ -53,6 +54,7 @@ const handleFiltersDatesChange = async (isOpen) => {
     ) {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
       await analyticsStore.enrichmentByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+      await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
     }
   }
 };
@@ -101,6 +103,8 @@ const disabledDate = (current) => {
 async function updateData(field) {
   if (field === "warehousePrice") {
     await analyticsStore.enrichmentByProductsWithStorage();
+  } else if (field === "acceptanceReport") {
+    await analyticsStore.enrichmentByProductsWithAcceptanceReport();
   }
 }
 </script>
@@ -183,7 +187,7 @@ async function updateData(field) {
             { value: analyticsStore.stats.quantitySale, symbol: 'шт'}
           ]"
           fieldName="retail_amount"
-          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
@@ -193,7 +197,7 @@ async function updateData(field) {
             { value: analyticsStore.stats.quantityCompensation, symbol: 'шт'}
           ]"
           fieldName="ppvz_for_pay"
-          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
@@ -203,7 +207,7 @@ async function updateData(field) {
             { value: analyticsStore.stats.retail_price, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="retail_price"
-          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
@@ -213,7 +217,7 @@ async function updateData(field) {
             { value: analyticsStore.stats.delivery_rub, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="delivery_rub"
-          :loading="analyticsStore.loadingEnrichmentByProducts"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
@@ -226,6 +230,16 @@ async function updateData(field) {
           :loading="analyticsStore.loadingEnrichmentByProducts"
           :get-data="analyticsStore.stats.warehousePrice ? false : true"
           @get="updateData($event)"
+        />
+
+        <NeCard
+          title="Платная приемка"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.acceptanceReport, symbol: '₽', roundTheValue: true }
+          ]"
+          fieldName="acceptanceReport"
+          :loading="analyticsStore.loadingEnrichmentByProducts"
         />
       </div>
     </template>
