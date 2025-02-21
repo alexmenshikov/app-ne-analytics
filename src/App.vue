@@ -30,7 +30,8 @@ const dateFormat = "DD MMM YYYY";
 onMounted(async () => {
   await analyticsStore.enrichmentCompaniesInfo();
   await analyticsStore.enrichmentWbArticles();
-  await analyticsStore.addSaleByProducts();
+  await analyticsStore.addSalesByProducts();
+  await analyticsStore.addOrdersByProducts();
   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
 
   // cardList.value = await getWbArticles({ apiToken: companyArray[0].apiToken });
@@ -53,7 +54,8 @@ const handleFiltersDatesChange = async (isOpen) => {
       JSON.stringify(analyticsStore.filters.dates)
     ) {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
-      await analyticsStore.addSaleByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+      await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+      await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
       await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
     }
   }
@@ -105,7 +107,7 @@ async function updateData(value) {
 
   if (field === "warehousePrice") {
     await analyticsStore.enrichmentByProductsWithStorage();
-  } else if (field === "acceptanceReport") {
+  } else if (field === "acceptanceSum") {
     await analyticsStore.enrichmentByProductsWithAcceptanceReport();
   }
 }
@@ -233,14 +235,25 @@ async function updateData(value) {
           :get-data="analyticsStore.stats.warehousePrice ? false : true"
           @get="updateData($event)"
         />
-<!--        acceptanceSum-->
+
         <NeCard
           title="Платная приемка"
           info=""
           :parameters="[
-            { value: analyticsStore.stats.acceptanceReport, symbol: '₽', roundTheValue: true }
+            { value: analyticsStore.stats.acceptanceSum, symbol: '₽', roundTheValue: true }
           ]"
-          fieldName="acceptanceReport"
+          fieldName="acceptanceSum"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
+        <NeCard
+          title="Заказы"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.orders, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.ordersCount, symbol: 'шт' }
+          ]"
+          fieldName="orders"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
       </div>

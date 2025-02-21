@@ -1,17 +1,19 @@
 import { defineStore } from "pinia";
 import { computed, nextTick, ref, watch } from "vue";
-import {message} from "ant-design-vue";
+import { message } from "ant-design-vue";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import { getSellerInfo } from "../composible/getSellerInfo.js";
 import { getWbArticles } from "../composible/getWbArticles.js";
 import { getSales } from "../composible/getSales.js";
+import { getOrders } from "../composible/getOrders.js";
 import { createPaidStorage } from "../composible/createPaidStorage.js";
 import { getPaidStorage } from "../composible/getPaidStorage.js";
 import { updateSalesByProducts } from "../composible/updateSalesByProducts.js";
+import { updateOrdersByProducts } from "../composible/updateOrdersByProducts.js";
 import { updateByProductsWithStorage } from "../composible/updateByProductsWithStorage.js";
 import { getAcceptanceReport } from "../composible/getAcceptanceReport.js";
-import {updateByProductsWithAcceptanceReport} from "../composible/updateByProductsWithAcceptanceReport.js";
+import { updateByProductsWithAcceptanceReport } from "../composible/updateByProductsWithAcceptanceReport.js";
 
 dayjs.extend(isoWeek);
 
@@ -60,7 +62,9 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.realisation += product.realisation; // Реализация
         acc.logistics += product.logistics; // Логистика
         acc.warehousePrice += product.warehousePrice; // Хранение
-        acc.acceptanceReport += product.acceptanceReport; // Платная приёмка
+        acc.acceptanceSum += product.acceptanceSum; // Платная приёмка
+        acc.orders += product.orders; // Заказы (сумма)
+        acc.ordersCount += product.ordersCount; // Заказы (количество)
         return acc;
       },
       {
@@ -71,7 +75,9 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         realisation: 0,
         logistics: 0,
         warehousePrice: 0,
-        acceptanceReport: 0
+        acceptanceSum: 0,
+        orders: 0,
+        ordersCount: 0,
       }
     );
   });
@@ -156,7 +162,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   };
 
   // Добавление информации о ПРОДАЖАХ
-  const addSaleByProducts = async() => {
+  const addSalesByProducts = async() => {
     loadingEnrichmentByProducts.value += 1;
     byProducts.value = [];
 
@@ -171,7 +177,31 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         byProducts.value = updateSalesByProducts(byProducts.value, salesData);
       } catch (error) {
         message.error("Ошибка при загрузки информации о продажах");
-        console.error("addSaleByProducts", error);
+        console.error("addSalesByProducts", error);
+      }
+    }
+    loadingEnrichmentByProducts.value -= 1;
+  };
+
+  // Добавление информации о ЗАКАЗАХ
+  const addOrdersByProducts = async() => {
+    loadingEnrichmentByProducts.value += 1;
+
+    for (const company of companyArray.value) {
+      try {
+        const ordersData = await getOrders({
+          apiToken: company.apiToken,
+          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        });
+
+        byProducts.value = updateOrdersByProducts({
+          byProducts: byProducts.value,
+          data: ordersData,
+          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
+        });
+      } catch (error) {
+        message.error("Ошибка при загрузки информации о продажах");
+        console.error("addOrdersByProducts", error);
       }
     }
     loadingEnrichmentByProducts.value -= 1;
@@ -285,7 +315,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     optionArticles,
     enrichmentCompaniesInfo,
     enrichmentWbArticles,
-    addSaleByProducts,
+    addSalesByProducts,
+    addOrdersByProducts,
     enrichmentByProductsWithStorage,
     enrichmentByProductsWithAcceptanceReport
   }

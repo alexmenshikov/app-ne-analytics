@@ -1,10 +1,10 @@
 export function updateByProductsWithAcceptanceReport(byProductsArray, acceptanceReportData) {
   return byProductsArray.map((product) => {
-    // Если acceptanceReportData пуст или не существует, устанавливаем acceptanceReport в 0
+    // Если acceptanceReportData пуст или не существует, устанавливаем acceptanceSum в 0
     if (!acceptanceReportData || acceptanceReportData.length === 0) {
       return {
         ...product,
-        acceptanceReport: 0,
+        acceptanceSum: 0,
       };
     }
 
@@ -23,7 +23,7 @@ export function updateByProductsWithAcceptanceReport(byProductsArray, acceptance
 
     return {
       ...product,
-      acceptanceReport: totalAcceptanceReport,
+      acceptanceSum: totalAcceptanceReport,
     };
   });
 }
