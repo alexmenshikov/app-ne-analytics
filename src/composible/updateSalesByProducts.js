@@ -1,3 +1,17 @@
+function calculateCommission({ nm_id, retail_amount, retail_price, acquiring_fee, commission_percent }) {
+  const one = (retail_price / 100) * commission_percent;
+  const two = one + acquiring_fee;
+  const three = retail_price - two;
+  const four = retail_amount - three;
+
+  if (nm_id === 277107650) {
+    console.log(retail_amount, retail_price, acquiring_fee, commission_percent);
+    console.log(one, two, three, four, four);
+  }
+
+  return parseFloat(four.toFixed(1));
+}
+
 export function updateSalesByProducts(byProductsArray, salesData) {
   const updatedProducts = [...byProductsArray];
 
@@ -13,18 +27,30 @@ export function updateSalesByProducts(byProductsArray, salesData) {
       existing.logistics += sale.delivery_rub;
       if (sale.supplier_oper_name === "Продажа") {
         existing.salesCount = (existing.salesCount || 0) + sale.quantity;
+        // existing.commission += sale.acquiring_fee;
+
+        existing.commission += calculateCommission({
+          nm_id: sale.nm_id,
+          retail_amount: sale.retail_amount,
+          retail_price: sale.retail_price,
+          acquiring_fee: sale.acquiring_fee,
+          commission_percent: sale.commission_percent,
+        })
       }
       if (sale.supplier_oper_name === "Компенсация ущерба") {
         existing.compensation += sale.ppvz_for_pay;
         existing.compensationCount = (existing.compensationCount || 0) + sale.quantity;
+        existing.commission -= sale.ppvz_for_pay;
       }
       if (sale.supplier_oper_name === "Возврат") {
         existing.sales -= sale.retail_amount;
         existing.salesCount = (existing.salesCount || 0) - sale.quantity;
         existing.realisation -= sale.retail_price;
+        existing.commission -= (sale.retail_amount - sale.ppvz_for_pay);
       } else {
         existing.sales += sale.retail_amount;
         existing.realisation += sale.retail_price;
+        // existing.otherDeduction += (sale.retail_amount - sale.ppvz_for_pay);
       }
     } else {
       updatedProducts.push({
@@ -38,6 +64,14 @@ export function updateSalesByProducts(byProductsArray, salesData) {
         logistics: sale.delivery_rub,
         supplier_oper_name: sale.supplier_oper_name,
         compensationCount: sale.supplier_oper_name === "Компенсация ущерба" ? sale.quantity : 0,
+        commission: calculateCommission({
+          nm_id: sale.nm_id,
+          retail_amount: sale.retail_amount,
+          retail_price: sale.retail_price,
+          acquiring_fee: sale.acquiring_fee,
+          commission_percent: sale.commission_percent,
+        }),
+        // otherDeduction: (sale.retail_amount - sale.ppvz_for_pay),
       });
     }
   });

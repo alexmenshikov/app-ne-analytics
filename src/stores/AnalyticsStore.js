@@ -63,8 +63,10 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.logistics += product.logistics; // Логистика
         acc.warehousePrice += product.warehousePrice; // Хранение
         acc.acceptanceSum += product.acceptanceSum; // Платная приёмка
-        acc.orders += product.orders; // Заказы (сумма)
-        acc.ordersCount += product.ordersCount; // Заказы (количество)
+        // acc.orders += product.orders; // Заказы (сумма)
+        // acc.ordersCount += product.ordersCount; // Заказы (количество)
+        acc.commission += product.commission;
+        // acc.otherDeduction += product.otherDeduction;
         return acc;
       },
       {
@@ -76,8 +78,10 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         logistics: 0,
         warehousePrice: 0,
         acceptanceSum: 0,
-        orders: 0,
-        ordersCount: 0,
+        // orders: 0,
+        // ordersCount: 0,
+        commission: 0,
+        // otherDeduction: 0,
       }
     );
   });
@@ -184,28 +188,28 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   };
 
   // Добавление информации о ЗАКАЗАХ
-  const addOrdersByProducts = async() => {
-    loadingEnrichmentByProducts.value += 1;
-
-    for (const company of companyArray.value) {
-      try {
-        const ordersData = await getOrders({
-          apiToken: company.apiToken,
-          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-        });
-
-        byProducts.value = updateOrdersByProducts({
-          byProducts: byProducts.value,
-          data: ordersData,
-          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
-        });
-      } catch (error) {
-        message.error("Ошибка при загрузки информации о продажах");
-        console.error("addOrdersByProducts", error);
-      }
-    }
-    loadingEnrichmentByProducts.value -= 1;
-  };
+  // const addOrdersByProducts = async() => {
+  //   loadingEnrichmentByProducts.value += 1;
+  //
+  //   for (const company of companyArray.value) {
+  //     try {
+  //       const ordersData = await getOrders({
+  //         apiToken: company.apiToken,
+  //         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //       });
+  //
+  //       byProducts.value = updateOrdersByProducts({
+  //         byProducts: byProducts.value,
+  //         data: ordersData,
+  //         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
+  //       });
+  //     } catch (error) {
+  //       message.error("Ошибка при загрузки информации о продажах");
+  //       console.error("addOrdersByProducts", error);
+  //     }
+  //   }
+  //   loadingEnrichmentByProducts.value -= 1;
+  // };
 
   // Добавление информации о ПЛАТНОМ ХРАНЕНИИ
   const enrichmentByProductsWithStorage = async() => {
@@ -261,7 +265,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
       let currentDate = dayjs(dateFrom);
       const endDate = dayjs(dateTo);
-      const loadingAcceptanceReport = message.loading("Загрузка отчёта о платной приёмке", 0);
+      // const loadingAcceptanceReport = message.loading("Загрузка отчёта о платной приёмке", 0);
 
       while (currentDate.isBefore(endDate)) {
         const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
@@ -275,7 +279,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
           byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
         } catch (error) {
-          loadingAcceptanceReport();
+          // loadingAcceptanceReport();
           console.error(error);
         }
 
@@ -286,7 +290,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
           await new Promise(resolve => setTimeout(resolve, 65000));
         }
 
-        loadingAcceptanceReport();
+        // loadingAcceptanceReport();
       }
     }
 
@@ -316,7 +320,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentCompaniesInfo,
     enrichmentWbArticles,
     addSalesByProducts,
-    addOrdersByProducts,
+    // addOrdersByProducts,
     enrichmentByProductsWithStorage,
     enrichmentByProductsWithAcceptanceReport
   }
