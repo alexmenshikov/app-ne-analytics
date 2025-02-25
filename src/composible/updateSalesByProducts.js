@@ -1,16 +1,16 @@
-function calculateCommission({ nm_id, retail_amount, retail_price, acquiring_fee, commission_percent }) {
+function calculateCommission({ retail_amount, retail_price, acquiring_fee, commission_percent }) {
   const one = (retail_price / 100) * commission_percent;
   const two = one + acquiring_fee;
   const three = retail_price - two;
   const four = retail_amount - three;
 
-  if (nm_id === 277107650) {
-    console.log(retail_amount, retail_price, acquiring_fee, commission_percent);
-    console.log(one, two, three, four, four);
-  }
-
   return parseFloat(four.toFixed(1));
 }
+
+// function findNalogValue({ brandName, store }) {
+//   // return store.find(company => company.tradeMark === brandName).value;
+//   console.log(brandName, store);
+// }
 
 export function updateSalesByProducts(byProductsArray, salesData) {
   const updatedProducts = [...byProductsArray];
@@ -30,7 +30,6 @@ export function updateSalesByProducts(byProductsArray, salesData) {
         // existing.commission += sale.acquiring_fee;
 
         existing.commission += calculateCommission({
-          nm_id: sale.nm_id,
           retail_amount: sale.retail_amount,
           retail_price: sale.retail_price,
           acquiring_fee: sale.acquiring_fee,
@@ -65,7 +64,6 @@ export function updateSalesByProducts(byProductsArray, salesData) {
         supplier_oper_name: sale.supplier_oper_name,
         compensationCount: sale.supplier_oper_name === "Компенсация ущерба" ? sale.quantity : 0,
         commission: calculateCommission({
-          nm_id: sale.nm_id,
           retail_amount: sale.retail_amount,
           retail_price: sale.retail_price,
           acquiring_fee: sale.acquiring_fee,

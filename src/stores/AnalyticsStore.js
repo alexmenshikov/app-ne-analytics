@@ -28,12 +28,13 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   const byProducts = ref([]);
   const filters = ref({
     dates: [
-      dayjs().subtract(1, 'week').startOf('isoWeek'),
-      dayjs().subtract(1, 'week').endOf('isoWeek')
+      dayjs().subtract(2, 'week').startOf('isoWeek'),
+      dayjs().subtract(2, 'week').endOf('isoWeek')
     ],
     companies: [],
     categories: [],
-    articles: []
+    articles: [],
+    tax: [],
   });
 
   const stats = computed(() => {
@@ -67,6 +68,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         // acc.ordersCount += product.ordersCount; // Заказы (количество)
         acc.commission += product.commission;
         // acc.otherDeduction += product.otherDeduction;
+        acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value;
         return acc;
       },
       {
@@ -82,6 +84,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         // ordersCount: 0,
         commission: 0,
         // otherDeduction: 0,
+        tax: 0,
       }
     );
   });
@@ -155,6 +158,15 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
     loading.value -= 1;
   };
+
+  const fillingNalog = () => {
+    companyArray.value.forEach(company => {
+      filters.value.tax.push({
+        tradeMark: company.tradeMark,
+        value: 7,
+      })
+    })
+  }
 
   // Добавление информации об АРТИКУЛАХ
   const enrichmentWbArticles = async() => {
@@ -318,6 +330,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     optionCategories,
     optionArticles,
     enrichmentCompaniesInfo,
+    fillingNalog,
     enrichmentWbArticles,
     addSalesByProducts,
     // addOrdersByProducts,
