@@ -7,11 +7,6 @@ function calculateCommission({ retail_amount, retail_price, acquiring_fee, commi
   return parseFloat(four.toFixed(1));
 }
 
-// function findNalogValue({ brandName, store }) {
-//   // return store.find(company => company.tradeMark === brandName).value;
-//   console.log(brandName, store);
-// }
-
 export function updateSalesByProducts(byProductsArray, salesData) {
   const updatedProducts = [...byProductsArray];
 

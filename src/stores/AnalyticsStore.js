@@ -12,8 +12,11 @@ import { getPaidStorage } from "../composible/getPaidStorage.js";
 import { updateSalesByProducts } from "../composible/updateSalesByProducts.js";
 import { updateOrdersByProducts } from "../composible/updateOrdersByProducts.js";
 import { updateByProductsWithStorage } from "../composible/updateByProductsWithStorage.js";
+import { updateByProductsWithPromotion } from "../composible/updateByProductsWithPromotion.js";
 import { getAcceptanceReport } from "../composible/getAcceptanceReport.js";
 import { updateByProductsWithAcceptanceReport } from "../composible/updateByProductsWithAcceptanceReport.js";
+import {getHistoryCosts} from "@/composible/getHistoryCosts.js";
+import {getPromotion} from "@/composible/getPromotion.js";
 
 dayjs.extend(isoWeek);
 
@@ -69,6 +72,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.commission += product.commission;
         // acc.otherDeduction += product.otherDeduction;
         acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value;
+        acc.advertisingExpense += product.advertisingExpense;
         return acc;
       },
       {
@@ -85,6 +89,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         commission: 0,
         // otherDeduction: 0,
         tax: 0,
+        advertisingExpense: 0,
       }
     );
   });
@@ -159,7 +164,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     loading.value -= 1;
   };
 
-  const fillingNalog = () => {
+  const fillingTax = () => {
     companyArray.value.forEach(company => {
       filters.value.tax.push({
         tradeMark: company.tradeMark,
@@ -189,6 +194,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
           dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
           dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         });
+
+        console.log("salesData", salesData);
 
         byProducts.value = updateSalesByProducts(byProducts.value, salesData);
       } catch (error) {
@@ -270,6 +277,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         limit: 8
       });
+
+      // await new Promise(resolve => setTimeout(resolve, 65000));
     }
   }
 
@@ -314,7 +323,158 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         limit: 31
       });
+
+      // await new Promise(resolve => setTimeout(resolve, 65000));
     }
+    loadingEnrichmentByProducts.value -= 1;
+  }
+
+  const enrichmentByProductsWithPromotion = async() => {
+    const promotion = ref([]);
+
+    async function fetchDataInBatchesHistory({ apiToken, dateFrom, dateTo, limit }) {
+      let currentDate = dayjs(dateFrom);
+      const endDate = dayjs(dateTo);
+
+      while (currentDate.isBefore(endDate)) {
+        const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+
+        try {
+          const historyCostData = await getHistoryCosts({
+            apiToken: apiToken,
+            dateFrom: currentDate.format('YYYY-MM-DD'),
+            dateTo: batchEndDate.format('YYYY-MM-DD'),
+          });
+
+          const newData = historyCostData
+            .filter(advert => advert.paymentType === "Баланс" || advert.paymentType === "Счет")
+            .map(advert => ({
+            advertId: advert.advertId,
+            updSum: advert.updSum,
+          }));
+
+          promotion.value.push(...newData);
+
+          // byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
+        } catch (error) {
+          console.error(error);
+        }
+
+        currentDate = currentDate.add(limit, 'day');
+
+        // Добавляем задержку в 2,5 секунды между запросами
+        if (currentDate.isBefore(endDate)) {
+          await new Promise(resolve => setTimeout(resolve, 2500));
+        }
+      }
+    }
+
+    async function fetchDataPromotion({ apiToken, adverts }) {
+      function splitArray(inputArray, chunkSize) {
+        const resultArrays = [];
+        for (let i = 0; i < inputArray.length; i += chunkSize) {
+          resultArrays.push(inputArray.slice(i, i + chunkSize));
+        }
+        return resultArrays;
+      }
+
+      const chunkedArray = splitArray(adverts, 50);
+
+      let data = [];
+      for (const item of chunkedArray) {
+        const dataPromotion = await getPromotion({ apiToken: apiToken, adverts: item });
+        data.push(...dataPromotion);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      function getProducts(object) {
+        // console.log("object", object);
+
+        if (object.type === 8) {
+          return object.autoParams?.nms[0];
+        } else if (object.type === 9) {
+          return object.unitedParams[0]?.nms[0];
+        }
+        // return null;
+      }
+
+      return data.map(item => ({
+        advertId: item.advertId,
+        nmId: getProducts(item),
+      }));
+    }
+
+    loadingEnrichmentByProducts.value += 1;
+    for (const company of companyArray.value) {
+      await fetchDataInBatchesHistory({
+        apiToken: company.apiToken,
+        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+        limit: 31
+      });
+    }
+
+    const adverts = promotion.value.map(advert => advert.advertId);
+    let dataAdvertsNmId = [];
+    for (const company of companyArray.value) {
+      dataAdvertsNmId = await fetchDataPromotion({ apiToken: company.apiToken, adverts });
+    }
+
+    function aggregateUpdSum(data1, data2) {
+      // Шаг 1: Суммируем updSum по advertId
+      const advertSumMap = new Map();
+
+      data1.forEach(({ advertId, updSum }) => {
+        // console.log(`${ advertId } - ${ updSum }`);
+
+        advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
+      });
+
+      // console.log("advertSumMap", advertSumMap);
+
+      // Шаг 2: Сопоставляем advertId с nmId и суммируем по nmId
+      const nmSumMap = new Map();
+
+      data2.forEach(({ advertId, nmId }) => {
+        if (advertSumMap.has(advertId)) {
+          nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + advertSumMap.get(advertId));
+        }
+      });
+
+      // Шаг 3: Преобразуем Map обратно в массив объектов
+      return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
+    }
+
+    const result = aggregateUpdSum(promotion.value, dataAdvertsNmId);
+
+    // // Шаг 1: Суммируем updSum по advertId
+    // const advertSum = promotion.value.reduce((acc, item) => {
+    //   if (!acc[item.advertId]) {
+    //     acc[item.advertId] = 0;
+    //   }
+    //   acc[item.advertId] += item.updSum;
+    //   return acc;
+    // }, {});
+    //
+    // console.log("advertSum", advertSum);
+    //
+    // // Шаг 2: Группируем по nmId и суммируем updSum
+    // const nmIdSum = dataAdvertsNmId.reduce((acc, item) => {
+    //   if (!acc[item.nmId]) {
+    //     acc[item.nmId] = 0;
+    //   }
+    //   acc[item.nmId] += advertSum[item.advertId] || 0;
+    //   return acc;
+    // }, {});
+    //
+    // // Шаг 3: Преобразуем результат в массив объектов
+    // const result = Object.keys(nmIdSum).map(nmId => ({
+    //   nmId: parseInt(nmId, 10),
+    //   updSum: nmIdSum[nmId]
+    // }));
+
+    byProducts.value = updateByProductsWithPromotion(byProducts.value, result);
+
     loadingEnrichmentByProducts.value -= 1;
   }
 
@@ -330,11 +490,12 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     optionCategories,
     optionArticles,
     enrichmentCompaniesInfo,
-    fillingNalog,
+    fillingTax,
     enrichmentWbArticles,
     addSalesByProducts,
     // addOrdersByProducts,
     enrichmentByProductsWithStorage,
-    enrichmentByProductsWithAcceptanceReport
+    enrichmentByProductsWithAcceptanceReport,
+    enrichmentByProductsWithPromotion,
   }
 });

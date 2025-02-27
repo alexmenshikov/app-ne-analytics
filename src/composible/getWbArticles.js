@@ -31,15 +31,13 @@ export async function getWbArticles({ apiToken }) {
       }
     );
 
-    // return response.data.cards;
-
     return response.data.cards.map((card) => ({
       nmUUID: card.nmUUID,
       brand: card.brand,
       nmID: card.nmID,
       vendorCode: card.vendorCode,
       title: card.title,
-      photo: card.photos[0].big,
+      photo: card.photos ? card.photos[0].big : null,
       category: card.subjectName
     }));
   } catch (error) {

@@ -41,6 +41,7 @@ const handleFiltersDatesChange = async (isOpen) => {
       await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
       // await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
       await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
+      await analyticsStore.enrichmentByProductsWithPromotion();
     }
   }
 };
@@ -62,6 +63,7 @@ onMounted(async () => {
   await analyticsStore.addSalesByProducts();
   // await analyticsStore.addOrdersByProducts();
   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
+  await analyticsStore.enrichmentByProductsWithPromotion();
 
   // cardList.value = await getWbArticles({ apiToken: companyArray[0].apiToken });
   // sellerInfo.value = await getSellerInfo({ apiToken: companyArray[0].apiToken });
@@ -228,6 +230,16 @@ onMounted(async () => {
             { value: analyticsStore.stats.tax, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="tax"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
+        <NeCard
+          title="Реклама"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.advertisingExpense, symbol: '₽', roundTheValue: true }
+          ]"
+          fieldName="advertisingExpense"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 

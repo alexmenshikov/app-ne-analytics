@@ -1,13 +1,13 @@
 import axios from "axios";
 import { message } from "ant-design-vue";
 
-export async function getAcceptanceReport({ apiToken, dateFrom, dateTo }) {
+export async function getHistoryCosts({ apiToken, dateFrom, dateTo }) {
   try {
     const response = await axios.get(
-      "https://seller-analytics-api.wildberries.ru/api/v1/analytics/acceptance-report", {
+      "https://advert-api.wildberries.ru/adv/v1/upd", {
         params: {
-          dateFrom: dateFrom,
-          dateTo: dateTo,
+          from: dateFrom,
+          to: dateTo,
         },
         headers: {
           Authorization: apiToken,
@@ -17,7 +17,7 @@ export async function getAcceptanceReport({ apiToken, dateFrom, dateTo }) {
 
     return response.data;
   } catch (error) {
-    message.error("Ошибка при загрузке отчёта о платной приёмке");
+    message.error("Ошибка при получении истории затрат (реклама)");
     console.error('Error:', error.response?.status, error.response?.data);
     return [];
   }

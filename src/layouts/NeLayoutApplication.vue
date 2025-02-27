@@ -13,7 +13,7 @@ import {
   AuditOutlined as AAuditOutlined,
 } from "@ant-design/icons-vue";
 
-const collapsed = ref<boolean>(false);
+const collapsed = ref<boolean>(true);
 const selectedKeys = ref<string[]>(['analytics']);
 </script>
 
