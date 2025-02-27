@@ -8,66 +8,65 @@ function calculateCommission({ retail_amount, retail_price, acquiring_fee, commi
 }
 
 export function updateSalesByProducts(byProductsArray, salesData) {
-  const updatedProducts = [...byProductsArray];
-
-  salesData.forEach((sale) => {
-    const existing = updatedProducts.find(
-      (product) =>
-        product.subject_name === sale.subject_name &&
-        product.nm_id === sale.nm_id &&
-        product.brand_name === sale.brand_name
+  return byProductsArray.map((product) => {
+    const matchingSales = salesData.filter(
+      (sale) =>
+        sale.subject_name === product.subject_name &&
+        sale.nm_id === product.nm_id &&
+        sale.brand_name === product.brand_name
     );
 
-    if (existing) {
-      existing.logistics += sale.delivery_rub;
-      if (sale.supplier_oper_name === "Продажа") {
-        existing.salesCount = (existing.salesCount || 0) + sale.quantity;
-        // existing.commission += sale.acquiring_fee;
-
-        existing.commission += calculateCommission({
-          retail_amount: sale.retail_amount,
-          retail_price: sale.retail_price,
-          acquiring_fee: sale.acquiring_fee,
-          commission_percent: sale.commission_percent,
-        })
-      }
-      if (sale.supplier_oper_name === "Компенсация ущерба") {
-        existing.compensation += sale.ppvz_for_pay;
-        existing.compensationCount = (existing.compensationCount || 0) + sale.quantity;
-        existing.commission -= sale.ppvz_for_pay;
-      }
-      if (sale.supplier_oper_name === "Возврат") {
-        existing.sales -= sale.retail_amount;
-        existing.salesCount = (existing.salesCount || 0) - sale.quantity;
-        existing.realisation -= sale.retail_price;
-        existing.commission -= (sale.retail_amount - sale.ppvz_for_pay);
-      } else {
-        existing.sales += sale.retail_amount;
-        existing.realisation += sale.retail_price;
-        // existing.otherDeduction += (sale.retail_amount - sale.ppvz_for_pay);
-      }
-    } else {
-      updatedProducts.push({
-        subject_name: sale.subject_name,
-        nm_id: sale.nm_id,
-        brand_name: sale.brand_name,
-        sales: sale.retail_amount,
-        salesCount: sale.supplier_oper_name === "Продажа" ? sale.quantity : 0,
-        compensation: sale.ppvz_for_pay,
-        realisation: sale.retail_price,
-        logistics: sale.delivery_rub,
-        supplier_oper_name: sale.supplier_oper_name,
-        compensationCount: sale.supplier_oper_name === "Компенсация ущерба" ? sale.quantity : 0,
-        commission: calculateCommission({
-          retail_amount: sale.retail_amount,
-          retail_price: sale.retail_price,
-          acquiring_fee: sale.acquiring_fee,
-          commission_percent: sale.commission_percent,
-        }),
-        // otherDeduction: (sale.retail_amount - sale.ppvz_for_pay),
-      });
+    if (matchingSales.length === 0) {
+      return product; // Если нет совпадений, возвращаем объект без изменений
     }
-  });
 
-  return updatedProducts;
+    // Создаём копию объекта и добавляем отсутствующие поля
+    let updatedProduct = {
+      ...product,
+      logistics: product.logistics || 0,
+      sales: product.sales || 0,
+      realisation: product.realisation || 0,
+      salesCount: product.salesCount || 0,
+      commission: product.commission || 0,
+      compensation: product.compensation || 0,
+      compensationCount: product.compensationCount || 0,
+    };
+
+    // Обрабатываем каждую продажу
+    matchingSales.forEach((sale) => {
+      updatedProduct.logistics += sale.delivery_rub || 0;
+
+      if (sale.supplier_oper_name === "Продажа") {
+        updatedProduct.salesCount += sale.quantity || 0;
+        updatedProduct.commission += calculateCommission({
+          retail_amount: sale.retail_amount || 0,
+          retail_price: sale.retail_price || 0,
+          acquiring_fee: sale.acquiring_fee || 0,
+          commission_percent: sale.commission_percent || 0,
+        });
+      }
+
+      if (
+        sale.supplier_oper_name === "Компенсация ущерба" ||
+        sale.supplier_oper_name === "Коррекция продаж" ||
+        sale.supplier_oper_name === "Добровольная компенсация при возврате"
+      ) {
+        updatedProduct.compensation += sale.ppvz_for_pay || 0;
+        updatedProduct.compensationCount += sale.quantity || 0;
+        updatedProduct.commission -= sale.ppvz_for_pay || 0;
+      }
+
+      if (sale.supplier_oper_name === "Возврат") {
+        updatedProduct.sales -= sale.retail_amount || 0;
+        updatedProduct.salesCount -= sale.quantity || 0;
+        updatedProduct.realisation -= sale.retail_price || 0;
+        updatedProduct.commission -= (sale.retail_amount - sale.ppvz_for_pay || 0);
+      } else {
+        updatedProduct.sales += sale.retail_amount || 0;
+        updatedProduct.realisation += sale.retail_price || 0;
+      }
+    });
+
+    return updatedProduct;
+  });
 }

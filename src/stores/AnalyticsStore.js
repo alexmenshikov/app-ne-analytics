@@ -182,10 +182,32 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     loading.value -= 1;
   };
 
+  // Создание списка продуктов на основе артикулов
+  const createByProducts = () => {
+    byProducts.value = [];
+
+    byProducts.value = wbArticles.value.map(article => ({
+      brand_name: article.brand,
+      subject_name: article.category,
+      nm_id: article.nmID,
+
+      // Поля, которые будут заполняться позже
+      logistics: 0,
+      sales: 0,
+      realisation: 0,
+      salesCount: 0,
+      commission: 0,
+      compensation: 0,
+      compensationCount: 0,
+      advertisingExpense: 0,
+    }));
+
+    // console.log("byProducts", byProducts.value);
+  }
+
   // Добавление информации о ПРОДАЖАХ
   const addSalesByProducts = async() => {
     loadingEnrichmentByProducts.value += 1;
-    byProducts.value = [];
 
     for (const company of companyArray.value) {
       try {
@@ -195,9 +217,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
           dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         });
 
-        console.log("salesData", salesData);
-
         byProducts.value = updateSalesByProducts(byProducts.value, salesData);
+
       } catch (error) {
         message.error("Ошибка при загрузки информации о продажах");
         console.error("addSalesByProducts", error);
@@ -237,7 +258,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       const endDate = dayjs(dateTo);
       const loadingGetPaidStorage = message.loading("Загрузка отчёта о платном хранении", 0);
 
-      while (currentDate.isBefore(endDate)) {
+      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
         const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
 
         try {
@@ -261,7 +282,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         currentDate = currentDate.add(limit, 'day');
 
         // Добавляем задержку в 1 минуту между запросами
-        if (currentDate.isBefore(endDate)) {
+        if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
           await new Promise(resolve => setTimeout(resolve, 65000));
         }
       }
@@ -288,7 +309,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       const endDate = dayjs(dateTo);
       // const loadingAcceptanceReport = message.loading("Загрузка отчёта о платной приёмке", 0);
 
-      while (currentDate.isBefore(endDate)) {
+      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
         const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
 
         try {
@@ -307,7 +328,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         currentDate = currentDate.add(limit, 'day');
 
         // Добавляем задержку в 1 минуту между запросами
-        if (currentDate.isBefore(endDate)) {
+        if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
           await new Promise(resolve => setTimeout(resolve, 65000));
         }
 
@@ -336,7 +357,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       let currentDate = dayjs(dateFrom);
       const endDate = dayjs(dateTo);
 
-      while (currentDate.isBefore(endDate)) {
+      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
         const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
 
         try {
@@ -363,7 +384,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         currentDate = currentDate.add(limit, 'day');
 
         // Добавляем задержку в 2,5 секунды между запросами
-        if (currentDate.isBefore(endDate)) {
+        if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
           await new Promise(resolve => setTimeout(resolve, 2500));
         }
       }
@@ -420,26 +441,60 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       dataAdvertsNmId = await fetchDataPromotion({ apiToken: company.apiToken, adverts });
     }
 
+    // function aggregateUpdSum(data1, data2) {
+    //   // Шаг 1: Суммируем updSum по advertId
+    //   const advertSumMap = new Map();
+    //
+    //   data1.forEach(({ advertId, updSum }) => {
+    //     // console.log(`${ advertId } - ${ updSum }`);
+    //
+    //     advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
+    //   });
+    //
+    //   console.log("advertSumMap", advertSumMap);
+    //
+    //   // Шаг 2: Сопоставляем advertId с nmId и суммируем по nmId
+    //   const nmSumMap = new Map();
+    //
+    //   data2.forEach(({ advertId, nmId }) => {
+    //     if (advertSumMap.has(advertId)) {
+    //       const sumToAdd = advertSumMap.get(advertId);
+    //       console.log(`nmId: ${nmId}, advertId: ${advertId}, adding: ${sumToAdd}`);
+    //
+    //       nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + sumToAdd);
+    //     }
+    //   });
+    //
+    //   console.log("nmSumMap", nmSumMap);
+    //
+    //   // Шаг 3: Преобразуем Map обратно в массив объектов
+    //   return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
+    // }
+
     function aggregateUpdSum(data1, data2) {
       // Шаг 1: Суммируем updSum по advertId
       const advertSumMap = new Map();
 
       data1.forEach(({ advertId, updSum }) => {
-        // console.log(`${ advertId } - ${ updSum }`);
-
         advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
       });
 
-      // console.log("advertSumMap", advertSumMap);
+      console.log("advertSumMap", advertSumMap);
 
-      // Шаг 2: Сопоставляем advertId с nmId и суммируем по nmId
+      // Шаг 2: Сопоставляем advertId с nmId, избегая повторных сложений
       const nmSumMap = new Map();
+      const processedPairs = new Set(); // Храним уже обработанные пары nmId-advertId
 
       data2.forEach(({ advertId, nmId }) => {
-        if (advertSumMap.has(advertId)) {
+        const pairKey = `${nmId}-${advertId}`; // Уникальный ключ
+
+        if (advertSumMap.has(advertId) && !processedPairs.has(pairKey)) {
+          processedPairs.add(pairKey); // Запоминаем, что уже обработали эту пару
           nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + advertSumMap.get(advertId));
         }
       });
+
+      console.log("nmSumMap", nmSumMap);
 
       // Шаг 3: Преобразуем Map обратно в массив объектов
       return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
@@ -492,6 +547,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentCompaniesInfo,
     fillingTax,
     enrichmentWbArticles,
+    createByProducts,
     addSalesByProducts,
     // addOrdersByProducts,
     enrichmentByProductsWithStorage,

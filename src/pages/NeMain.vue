@@ -38,6 +38,7 @@ const handleFiltersDatesChange = async (isOpen) => {
       JSON.stringify(analyticsStore.filters.dates)
     ) {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
+      analyticsStore.createByProducts();
       await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
       // await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
       await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
@@ -60,6 +61,7 @@ onMounted(async () => {
   // await analyticsStore.enrichmentCompaniesInfo();
   // analyticsStore.fillingNalog();
   await analyticsStore.enrichmentWbArticles();
+  analyticsStore.createByProducts();
   await analyticsStore.addSalesByProducts();
   // await analyticsStore.addOrdersByProducts();
   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
