@@ -245,6 +245,16 @@ onMounted(async () => {
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
+        <NeCard
+          title="ДРР"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.drr, symbol: '%' }
+          ]"
+          fieldName="advertisingExpense"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
         <!--        <NeCard-->
         <!--          title="Прочие удержания"-->
         <!--          info=""-->

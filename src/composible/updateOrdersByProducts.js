@@ -12,9 +12,9 @@ export function updateOrdersByProducts({ byProducts, data, dateTo }) {
         dataItem.nmId === product.nm_id
     );
 
-    matchingStorageItems.forEach((item, index) => {
-      console.log(`${index+1} - ${product.nm_id} - ${item.date}`);
-    })
+    // matchingStorageItems.forEach((item, index) => {
+    //   console.log(`${index+1} - ${product.nm_id} - ${item.date}`);
+    // })
 
     // Суммируем orders, если есть совпадения
     const totalOrderPrice = matchingStorageItems.reduce(

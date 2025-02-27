@@ -57,7 +57,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       }
     }
 
-    return filteredProducts.reduce(
+    const result = filteredProducts.reduce(
       (acc, product) => {
         acc.sales += product.sales; // Продажи (сумма)
         acc.salesCount += product.salesCount; // Продажи (количество)
@@ -73,6 +73,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         // acc.otherDeduction += product.otherDeduction;
         acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value;
         acc.advertisingExpense += product.advertisingExpense;
+        acc.drr += (product.advertisingExpense && product.realisation) ? ((product.advertisingExpense / product.realisation) * 100) : 0;
         return acc;
       },
       {
@@ -90,8 +91,16 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         // otherDeduction: 0,
         tax: 0,
         advertisingExpense: 0,
+        drr: 0,
       }
     );
+
+    // После завершения reduce вычисляем DRR
+    result.drr = (result.advertisingExpense && result.realisation)
+      ? ((result.advertisingExpense / result.realisation) * 100)
+      : 0;
+
+    return result;
   });
 
   const loading = ref(0);
@@ -479,7 +488,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
       });
 
-      console.log("advertSumMap", advertSumMap);
+      // console.log("advertSumMap", advertSumMap);
 
       // Шаг 2: Сопоставляем advertId с nmId, избегая повторных сложений
       const nmSumMap = new Map();
@@ -494,7 +503,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         }
       });
 
-      console.log("nmSumMap", nmSumMap);
+      // console.log("nmSumMap", nmSumMap);
 
       // Шаг 3: Преобразуем Map обратно в массив объектов
       return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
