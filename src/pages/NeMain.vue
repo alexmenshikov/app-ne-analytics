@@ -265,6 +265,16 @@ onMounted(async () => {
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
+        <NeCard
+          title="Чистая прибыль"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.profit, symbol: '₽' }
+          ]"
+          fieldName="advertisingExpense"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
         <!--        <NeCard-->
         <!--          title="Прочие удержания"-->
         <!--          info=""-->

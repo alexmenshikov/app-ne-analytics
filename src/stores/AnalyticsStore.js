@@ -70,12 +70,22 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.acceptanceSum += product.acceptanceSum; // Платная приёмка
         // acc.orders += product.orders; // Заказы (сумма)
         // acc.ordersCount += product.ordersCount; // Заказы (количество)
-        acc.commission += product.commission;
+        acc.commission += product.commission; // Комиссия
         // acc.otherDeduction += product.otherDeduction;
-        acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value;
-        acc.advertisingExpense += product.advertisingExpense;
+        acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value; // Налоги
+        acc.advertisingExpense += product.advertisingExpense; // Реклама
         acc.drr += (product.advertisingExpense && product.realisation) ? ((product.advertisingExpense / product.realisation) * 100) : 0;
-        acc.costOfSales += (product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value);
+        acc.costOfSales += (product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value); // Себестоимость продаж
+        acc.profit += // Чистая прибыль
+          product.realisation - // Реализация
+          product.logistics - // Логистика
+          product.advertisingExpense - // Реклама
+          (product.warehousePrice ? product.warehousePrice : 0) - // Хранение
+          product.acceptanceSum - // Платная приёмка
+          // Прочие расходы
+          product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value - // Себестоимость продаж
+          filters.value.tax.find(company => company.tradeMark === product.brand_name).value - // Налоги
+          product.commission; // Комиссия
         return acc;
       },
       {
@@ -95,6 +105,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         advertisingExpense: 0,
         drr: 0,
         costOfSales: 0,
+        profit: 0,
       }
     );
 
