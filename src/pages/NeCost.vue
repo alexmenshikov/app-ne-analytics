@@ -12,10 +12,10 @@ const analyticsStore = useAnalyticsStore();
 <template>
   <div class="page">
     <a-form ref="form" layout="vertical" class="form">
-      <a-form-item v-for="(company, index ) in analyticsStore.filters.tax" :key="index" :label="company.tradeMark" class="form__item">
+      <a-form-item v-for="(article, index ) in analyticsStore.filters.cost" :key="index" :label="`${article.tradeMark} - ${article.vendorCode}`" class="form__item">
         <a-input
-          v-model:value.number.trim="company.value"
-          suffix="%"
+          v-model:value.number.trim="article.value"
+          suffix="₽"
         />
       </a-form-item>
     </a-form>
@@ -28,6 +28,6 @@ const analyticsStore = useAnalyticsStore();
 }
 
 .form__item {
-  max-width: 100px;
+  max-width: 250px;
 }
 </style>

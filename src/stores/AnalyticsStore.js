@@ -31,13 +31,14 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   const byProducts = ref([]);
   const filters = ref({
     dates: [
-      dayjs().subtract(2, 'week').startOf('isoWeek'),
-      dayjs().subtract(2, 'week').endOf('isoWeek')
+      dayjs().subtract(1, 'week').startOf('isoWeek'),
+      dayjs().subtract(1, 'week').endOf('isoWeek')
     ],
     companies: [],
     categories: [],
     articles: [],
     tax: [],
+    cost: [],
   });
 
   const stats = computed(() => {
@@ -74,6 +75,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value;
         acc.advertisingExpense += product.advertisingExpense;
         acc.drr += (product.advertisingExpense && product.realisation) ? ((product.advertisingExpense / product.realisation) * 100) : 0;
+        acc.costOfSales += (product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value);
         return acc;
       },
       {
@@ -92,6 +94,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         tax: 0,
         advertisingExpense: 0,
         drr: 0,
+        costOfSales: 0,
       }
     );
 
@@ -105,6 +108,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
   const loading = ref(0);
   const loadingEnrichmentByProducts = ref(0);
+  const isEnrichmentWbArticlesDone = ref(false);
 
   const optionCompanies = computed(() => {
     return companyArray.value.map(company => ({
@@ -182,17 +186,35 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     })
   }
 
+  const fillingCost = () => {
+    filters.value.cost = []; // Очищаем массив перед заполнением
+    wbArticles.value.forEach(article => {
+      filters.value.cost.push({
+        tradeMark: article.brand,
+        nmID: article.nmID,
+        vendorCode: article.vendorCode,
+        value: 300,
+      });
+    });
+  };
+
   // Добавление информации об АРТИКУЛАХ
   const enrichmentWbArticles = async() => {
     loading.value += 1;
+    isEnrichmentWbArticlesDone.value = false;
     for (const company of companyArray.value) {
       wbArticles.value = await getWbArticles({apiToken: company.apiToken});
     }
+    isEnrichmentWbArticlesDone.value = true;
     loading.value -= 1;
   };
 
   // Создание списка продуктов на основе артикулов
-  const createByProducts = () => {
+  const createByProducts = async () => {
+    if (!isEnrichmentWbArticlesDone.value) {
+      await enrichmentWbArticles();
+    }
+
     byProducts.value = [];
 
     byProducts.value = wbArticles.value.map(article => ({
@@ -555,6 +577,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     optionArticles,
     enrichmentCompaniesInfo,
     fillingTax,
+    fillingCost,
     enrichmentWbArticles,
     createByProducts,
     addSalesByProducts,

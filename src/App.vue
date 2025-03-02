@@ -17,7 +17,9 @@ dayjs.extend(utc);
 
 onMounted(async () => {
   await analyticsStore.enrichmentCompaniesInfo();
+  await analyticsStore.enrichmentWbArticles();
   analyticsStore.fillingTax();
+  analyticsStore.fillingCost();
 });
 </script>
 

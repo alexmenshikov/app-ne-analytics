@@ -10,6 +10,10 @@ const router = createRouter({
     {
       path: "/tax",
       component: () => import("@/pages/NeTax.vue"),
+    },
+    {
+      path: "/cost",
+      component: () => import("@/pages/NeCost.vue"),
     }
   ]
 })

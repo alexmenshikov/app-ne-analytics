@@ -11,6 +11,8 @@ import {
 import {
   AppstoreOutlined as AAppstoreOutlined,
   AuditOutlined as AAuditOutlined,
+  ContainerOutlined as AAContainerOutlined,
+  ShoppingOutlined as AAShoppingOutlined,
 } from "@ant-design/icons-vue";
 
 const collapsed = ref<boolean>(true);
@@ -39,6 +41,13 @@ const selectedKeys = ref<string[]>(['analytics']);
           <router-link to="/tax">
             <a-audit-outlined />
             <span>Налог</span>
+          </router-link>
+        </a-menu-item>
+
+        <a-menu-item key="cost">
+          <router-link to="/cost">
+            <a-a-shopping-outlined />
+            <span>Себестоимость</span>
           </router-link>
         </a-menu-item>
       </a-menu>

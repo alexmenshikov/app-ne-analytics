@@ -60,8 +60,8 @@ async function updateData(value) {
 onMounted(async () => {
   // await analyticsStore.enrichmentCompaniesInfo();
   // analyticsStore.fillingNalog();
-  await analyticsStore.enrichmentWbArticles();
-  analyticsStore.createByProducts();
+  // await analyticsStore.enrichmentWbArticles();
+  await analyticsStore.createByProducts();
   await analyticsStore.addSalesByProducts();
   // await analyticsStore.addOrdersByProducts();
   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
@@ -250,6 +250,16 @@ onMounted(async () => {
           info=""
           :parameters="[
             { value: analyticsStore.stats.drr, symbol: '%' }
+          ]"
+          fieldName="advertisingExpense"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
+        <NeCard
+          title="Себестоимость продаж"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.costOfSales, symbol: '₽' }
           ]"
           fieldName="advertisingExpense"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
