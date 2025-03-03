@@ -117,7 +117,6 @@ function get() {
   flex-direction: column;
   justify-content: space-between;
   padding: 15px;
-  //box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
 }
 
 .card__header {
@@ -151,15 +150,11 @@ function get() {
 @media (min-width: 1520px) {
   .card {
     background-color: #fff;
-    //border-radius: 10px;
     border-radius: 16px;
-    //border: 1px solid #d9d9d9;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    //padding: 12px;
     padding: 15px;
-    //box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
   }
 
   .card__header {
@@ -180,15 +175,7 @@ function get() {
     display: flex;
   }
 
-  .card__body-parameter,
-  .card__body-value,
-  .card__body-symbol,
-  .card__body-separator {
-    //font-weight: 700;
-  }
-
-  .card__body-value,
-  .card__body-separator {
+  .card__body-value {
     line-height: 1.5714285714285714;
     font-size: 24px;
   }
