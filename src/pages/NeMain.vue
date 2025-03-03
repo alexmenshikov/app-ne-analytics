@@ -275,15 +275,15 @@ onMounted(async () => {
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
-        <!--        <NeCard-->
-        <!--          title="Прочие удержания"-->
-        <!--          info=""-->
-        <!--          :parameters="[-->
-        <!--            { value: analyticsStore.stats.otherDeduction, symbol: '₽', roundTheValue: true }-->
-        <!--          ]"-->
-        <!--          fieldName="otherDeduction"-->
-        <!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
-        <!--        />-->
+        <NeCard
+          title="Прочие удержания"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.otherDeduction, symbol: '₽', roundTheValue: true }
+          ]"
+          fieldName="otherDeduction"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
       </div>
     </template>
   </div>

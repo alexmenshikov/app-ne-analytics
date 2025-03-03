@@ -71,21 +71,35 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         // acc.orders += product.orders; // Заказы (сумма)
         // acc.ordersCount += product.ordersCount; // Заказы (количество)
         acc.commission += product.commission; // Комиссия
-        // acc.otherDeduction += product.otherDeduction;
-        acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value; // Налоги
+        acc.otherDeduction += product.otherDeduction;
+
+        const taxEntry = filters.value.tax?.find(company => company.tradeMark === product.brand_name);
+        const tax = (product.sales / 100) * (taxEntry ? taxEntry.value : 0)
+        acc.tax += tax;
+
+        // acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value; // Налоги
         acc.advertisingExpense += product.advertisingExpense; // Реклама
-        acc.drr += (product.advertisingExpense && product.realisation) ? ((product.advertisingExpense / product.realisation) * 100) : 0;
-        acc.costOfSales += (product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value); // Себестоимость продаж
+        acc.drr += (product.advertisingExpense && product.realisation)
+          ? ((product.advertisingExpense / product.realisation) * 100)
+          : 0;
+
+        const costEntry = filters.value.cost?.find(article => article.nmID === product.nm_id);
+        const costOfSales = product.salesCount * (costEntry ? costEntry.value : 0);
+        acc.costOfSales += costOfSales;
+
+        // acc.costOfSales += (product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value); // Себестоимость продаж
         acc.profit += // Чистая прибыль
-          product.realisation - // Реализация
+          //product.realisation - // Реализация
+          product.sales - // Продажи
           product.logistics - // Логистика
           product.advertisingExpense - // Реклама
           (product.warehousePrice ? product.warehousePrice : 0) - // Хранение
           product.acceptanceSum - // Платная приёмка
-          // Прочие расходы
-          product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value - // Себестоимость продаж
-          filters.value.tax.find(company => company.tradeMark === product.brand_name).value - // Налоги
-          product.commission; // Комиссия
+          product.otherDeduction - // Прочие удержания
+          costOfSales - // Себестоимость продаж
+          tax - // Налоги
+          product.commission + // Комиссия
+          (product.compensation - product.compensationCount * 305); // Компенсация
         return acc;
       },
       {
@@ -100,7 +114,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         // orders: 0,
         // ordersCount: 0,
         commission: 0,
-        // otherDeduction: 0,
+        otherDeduction: 0,
         tax: 0,
         advertisingExpense: 0,
         drr: 0,
@@ -197,6 +211,25 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     })
   }
 
+  function setValueCost(vendorCode) {
+    if (
+      vendorCode === "NV1Bblack" ||
+      vendorCode === "NV1Bbeige" ||
+      vendorCode === "NV1Bcoffee"
+    ) {
+      return 364;
+    } else if (
+      vendorCode === "NV3Ucoffee" ||
+      vendorCode === "NV3Ubeige" ||
+      vendorCode === "NV3Umix" ||
+      vendorCode === "NV3Ublack"
+    ) {
+      return 305;
+    } else {
+      return 0;
+    }
+  }
+
   const fillingCost = () => {
     filters.value.cost = []; // Очищаем массив перед заполнением
     wbArticles.value.forEach(article => {
@@ -204,7 +237,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         tradeMark: article.brand,
         nmID: article.nmID,
         vendorCode: article.vendorCode,
-        value: 300,
+        value: setValueCost(article.vendorCode),
       });
     });
   };
@@ -242,6 +275,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       compensation: 0,
       compensationCount: 0,
       advertisingExpense: 0,
+      otherDeduction: 0,
     }));
 
     // console.log("byProducts", byProducts.value);

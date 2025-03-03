@@ -30,11 +30,13 @@ export function updateSalesByProducts(byProductsArray, salesData) {
       commission: product.commission || 0,
       compensation: product.compensation || 0,
       compensationCount: product.compensationCount || 0,
+      otherDeduction: product.otherDeduction || 0,
     };
 
     // Обрабатываем каждую продажу
     matchingSales.forEach((sale) => {
       updatedProduct.logistics += sale.delivery_rub || 0;
+      updatedProduct.otherDeduction += sale.deduction || 0;
 
       if (sale.supplier_oper_name === "Продажа") {
         updatedProduct.salesCount += sale.quantity || 0;
