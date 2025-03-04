@@ -48,14 +48,8 @@ export function updateOrdersByProducts({ byProducts, data, dateFrom, dateTo }) {
     // Используем Set для хранения уникальных srid
     const uniqueSrids = new Set();
 
-    console.log("matchingStorageItems", matchingStorageItems);
-
     // Суммируем orders и учитываем уникальные srid для ordersCount
     const totalOrderPrice = matchingStorageItems.reduce((sum, item) => {
-      if (item.nmId === 277107650) {
-        console.log("встретили");
-      }
-
       if (!uniqueSrids.has(item.srid)) {
         uniqueSrids.add(item.srid);
       }
