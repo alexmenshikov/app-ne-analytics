@@ -142,6 +142,17 @@ onMounted(async () => {
 
       <div class="table">
         <NeCard
+          title="Чистая прибыль / Маржинальность"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.profit, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.marginality, symbol: '%'}
+          ]"
+          fieldName="advertisingExpense"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
+        <NeCard
           title="Продажи"
           info="Сумма продаж с учетом применения СПП и ВБ кошелька"
           :parameters="[
@@ -152,15 +163,15 @@ onMounted(async () => {
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
-        <NeCard
-          title="Компенсация"
-          :parameters="[
-            { value: analyticsStore.stats.compensation, symbol: '₽', roundTheValue: true },
-            { value: analyticsStore.stats.compensationCount, symbol: 'шт'}
-          ]"
-          fieldName="compensation"
-          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
-        />
+<!--        <NeCard-->
+<!--          title="Компенсация"-->
+<!--          :parameters="[-->
+<!--            { value: analyticsStore.stats.compensation, symbol: '₽', roundTheValue: true },-->
+<!--            { value: analyticsStore.stats.compensationCount, symbol: 'шт'}-->
+<!--          ]"-->
+<!--          fieldName="compensation"-->
+<!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
+<!--        />-->
 
         <NeCard
           title="Реализация"
@@ -195,14 +206,25 @@ onMounted(async () => {
         />
 
         <NeCard
-          title="Платная приемка"
+          title="Платная приемка / Прочие удержания"
           info=""
           :parameters="[
-            { value: analyticsStore.stats.acceptanceSum, symbol: '₽', roundTheValue: true }
+            { value: analyticsStore.stats.acceptanceSum, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.otherDeduction, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="acceptanceSum"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
+
+<!--        <NeCard-->
+<!--          title="Прочие удержания"-->
+<!--          info=""-->
+<!--          :parameters="[-->
+<!--            { value: analyticsStore.stats.otherDeduction, symbol: '₽', roundTheValue: true }-->
+<!--          ]"-->
+<!--          fieldName="otherDeduction"-->
+<!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
+<!--        />-->
 
         <!--        <NeCard-->
         <!--          title="Заказы"-->
@@ -216,44 +238,46 @@ onMounted(async () => {
         <!--        />-->
 
         <NeCard
-          title="Комиссия"
+          title="Налоги / Комиссия"
           info=""
           :parameters="[
+            { value: analyticsStore.stats.tax, symbol: '₽', roundTheValue: true },
             { value: analyticsStore.stats.commission, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="commission"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
-        <NeCard
-          title="Налоги"
-          info=""
-          :parameters="[
-            { value: analyticsStore.stats.tax, symbol: '₽', roundTheValue: true }
-          ]"
-          fieldName="tax"
-          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
-        />
+<!--        <NeCard-->
+<!--          title="Налоги"-->
+<!--          info=""-->
+<!--          :parameters="[-->
+<!--            { value: analyticsStore.stats.tax, symbol: '₽', roundTheValue: true }-->
+<!--          ]"-->
+<!--          fieldName="tax"-->
+<!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
+<!--        />-->
 
         <NeCard
-          title="Реклама"
+          title="ДРР / Реклама"
           info=""
           :parameters="[
+            { value: analyticsStore.stats.drr, symbol: '%' },
             { value: analyticsStore.stats.advertisingExpense, symbol: '₽', roundTheValue: true }
           ]"
           fieldName="advertisingExpense"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
-        <NeCard
-          title="ДРР"
-          info=""
-          :parameters="[
-            { value: analyticsStore.stats.drr, symbol: '%' }
-          ]"
-          fieldName="advertisingExpense"
-          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
-        />
+<!--        <NeCard-->
+<!--          title="ДРР"-->
+<!--          info=""-->
+<!--          :parameters="[-->
+<!--            { value: analyticsStore.stats.drr, symbol: '%' }-->
+<!--          ]"-->
+<!--          fieldName="advertisingExpense"-->
+<!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
+<!--        />-->
 
         <NeCard
           title="Себестоимость продаж"
@@ -261,27 +285,37 @@ onMounted(async () => {
           :parameters="[
             { value: analyticsStore.stats.costOfSales, symbol: '₽' }
           ]"
-          fieldName="advertisingExpense"
+          fieldName="costOfSales"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
-          title="Чистая прибыль"
+          title="ROI"
           info=""
           :parameters="[
-            { value: analyticsStore.stats.profit, symbol: '₽' }
+            { value: analyticsStore.stats.roi, symbol: '%' }
           ]"
-          fieldName="advertisingExpense"
+          fieldName="roi"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
 
         <NeCard
-          title="Прочие удержания"
+          title="Процент выкупа"
           info=""
           :parameters="[
-            { value: analyticsStore.stats.otherDeduction, symbol: '₽', roundTheValue: true }
+            { value: analyticsStore.stats.averageRedemption, symbol: '%' }
           ]"
-          fieldName="otherDeduction"
+          fieldName="averageRedemption"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
+
+        <NeCard
+          title="Средняя цена до СПП"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.averagePriceBeforeSPP, symbol: '₽', roundTheValue: true }
+          ]"
+          fieldName="averagePriceBeforeSPP"
           :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
         />
       </div>
@@ -355,10 +389,6 @@ onMounted(async () => {
   .period-report__items {
     grid-template-columns: 1fr;
   }
-
-  .table {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 @media (min-width: 1180px) {
@@ -367,7 +397,7 @@ onMounted(async () => {
   }
 
   .table {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 </style>

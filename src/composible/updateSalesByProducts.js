@@ -24,6 +24,7 @@ export function updateSalesByProducts(byProductsArray, salesData) {
     let updatedProduct = {
       ...product,
       logistics: product.logistics || 0,
+      logisticsCount: product.logisticsCount || 0,
       sales: product.sales || 0,
       realisation: product.realisation || 0,
       salesCount: product.salesCount || 0,
@@ -38,6 +39,10 @@ export function updateSalesByProducts(byProductsArray, salesData) {
       updatedProduct.logistics += sale.delivery_rub || 0;
       updatedProduct.otherDeduction += sale.deduction || 0;
 
+      if (sale.bonus_type_name !== "Возврат брака (К продавцу)") {
+        updatedProduct.logisticsCount += sale.delivery_amount || 0;
+      }
+
       if (sale.supplier_oper_name === "Продажа") {
         updatedProduct.salesCount += sale.quantity || 0;
         updatedProduct.commission += calculateCommission({
@@ -49,12 +54,17 @@ export function updateSalesByProducts(byProductsArray, salesData) {
       }
 
       if (
-        sale.supplier_oper_name === "Компенсация ущерба" ||
-        sale.supplier_oper_name === "Коррекция продаж" ||
-        sale.supplier_oper_name === "Добровольная компенсация при возврате"
+        sale.supplier_oper_name === "Компенсация ущерба"
       ) {
         updatedProduct.compensation += sale.ppvz_for_pay || 0;
         updatedProduct.compensationCount += sale.quantity || 0;
+        updatedProduct.commission -= sale.ppvz_for_pay || 0;
+      }
+
+      if (
+        sale.supplier_oper_name === "Коррекция продаж" ||
+        sale.supplier_oper_name === "Добровольная компенсация при возврате"
+      ) {
         updatedProduct.commission -= sale.ppvz_for_pay || 0;
       }
 

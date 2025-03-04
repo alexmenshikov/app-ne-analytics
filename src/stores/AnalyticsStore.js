@@ -66,6 +66,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.compensationCount += product.compensationCount; // Компенсация (количество)
         acc.realisation += product.realisation; // Реализация
         acc.logistics += product.logistics; // Логистика
+        acc.logisticsCount += product.logisticsCount // Количество доставок
         acc.warehousePrice += product.warehousePrice; // Хранение
         acc.acceptanceSum += product.acceptanceSum; // Платная приёмка
         // acc.orders += product.orders; // Заказы (сумма)
@@ -75,9 +76,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
         const taxEntry = filters.value.tax?.find(company => company.tradeMark === product.brand_name);
         const tax = (product.sales / 100) * (taxEntry ? taxEntry.value : 0)
-        acc.tax += tax;
+        acc.tax += tax; // Налоги
 
-        // acc.tax += (product.sales / 100) * filters.value.tax.find(company => company.tradeMark === product.brand_name).value; // Налоги
         acc.advertisingExpense += product.advertisingExpense; // Реклама
         acc.drr += (product.advertisingExpense && product.realisation)
           ? ((product.advertisingExpense / product.realisation) * 100)
@@ -85,11 +85,11 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
         const costEntry = filters.value.cost?.find(article => article.nmID === product.nm_id);
         const costOfSales = product.salesCount * (costEntry ? costEntry.value : 0);
-        acc.costOfSales += costOfSales;
+        acc.costOfSales += costOfSales; // Себестоимость продаж
 
-        // acc.costOfSales += (product.salesCount * filters.value.cost.find(article => article.nmID === product.nm_id).value); // Себестоимость продаж
-        acc.profit += // Чистая прибыль
-          //product.realisation - // Реализация
+        const costOfGoodsCompensation = product.compensationCount > 0 ? (product.compensationCount * costEntry.value) : 0;
+
+        const profit =
           product.sales - // Продажи
           product.logistics - // Логистика
           product.advertisingExpense - // Реклама
@@ -99,7 +99,12 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
           costOfSales - // Себестоимость продаж
           tax - // Налоги
           product.commission + // Комиссия
-          (product.compensation - product.compensationCount * 305); // Компенсация
+          (product.compensation - costOfGoodsCompensation); // Компенсация
+
+        acc.profit += profit // Чистая прибыль
+
+        // acc.marginality += (profit / product.realisation) * 100;
+        // acc.marginality += (profit / product.realisation) * 100;
         return acc;
       },
       {
@@ -109,6 +114,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         compensationCount: 0,
         realisation: 0,
         logistics: 0,
+        logisticsCount: 0,
         warehousePrice: 0,
         acceptanceSum: 0,
         // orders: 0,
@@ -120,12 +126,33 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         drr: 0,
         costOfSales: 0,
         profit: 0,
+        marginality: 0,
+        roi: 0,
+        averageRedemption: 0,
+        averagePriceBeforeSPP: 0,
       }
     );
 
     // После завершения reduce вычисляем DRR
     result.drr = (result.advertisingExpense && result.realisation)
       ? ((result.advertisingExpense / result.realisation) * 100)
+      : 0;
+
+    result.marginality = (result.profit / result.realisation)
+      ? ((result.profit / result.realisation) * 100)
+      : 0;
+
+    result.roi = (result.profit / result.costOfSales)
+      ? ((result.profit / result.costOfSales) * 100)
+      : 0;
+
+    result.averageRedemption = (result.salesCount / result.logisticsCount)
+      ? ((result.salesCount / result.logisticsCount) * 100)
+      : 0;
+
+    // Средняя цена до СПП
+    result.averagePriceBeforeSPP += (result.realisation / result.salesCount)
+      ? (result.realisation / result.salesCount)
       : 0;
 
     return result;
@@ -268,6 +295,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
       // Поля, которые будут заполняться позже
       logistics: 0,
+      logisticsCount: 0,
       sales: 0,
       realisation: 0,
       salesCount: 0,

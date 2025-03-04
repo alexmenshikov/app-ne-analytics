@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
-  // history: createWebHistory("/"),
-  history: createWebHistory("/app-ne-analytics/"),
+  history: createWebHistory("/"),
   routes: [
     {
       path: "/",
