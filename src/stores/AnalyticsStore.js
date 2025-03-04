@@ -69,8 +69,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.logisticsCount += product.logisticsCount // Количество доставок
         acc.warehousePrice += product.warehousePrice; // Хранение
         acc.acceptanceSum += product.acceptanceSum; // Платная приёмка
-        // acc.orders += product.orders; // Заказы (сумма)
-        // acc.ordersCount += product.ordersCount; // Заказы (количество)
+        acc.orders += product.orders; // Заказы (сумма)
+        acc.ordersCount += product.ordersCount; // Заказы (количество)
         acc.commission += product.commission; // Комиссия
         acc.otherDeduction += product.otherDeduction;
 
@@ -102,9 +102,6 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
           (product.compensation - costOfGoodsCompensation); // Компенсация
 
         acc.profit += profit // Чистая прибыль
-
-        // acc.marginality += (profit / product.realisation) * 100;
-        // acc.marginality += (profit / product.realisation) * 100;
         return acc;
       },
       {
@@ -117,8 +114,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         logisticsCount: 0,
         warehousePrice: 0,
         acceptanceSum: 0,
-        // orders: 0,
-        // ordersCount: 0,
+        orders: 0,
+        ordersCount: 0,
         commission: 0,
         otherDeduction: 0,
         tax: 0,
@@ -304,9 +301,9 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       compensationCount: 0,
       advertisingExpense: 0,
       otherDeduction: 0,
+      orders: 0,
+      ordersCount: 0,
     }));
-
-    // console.log("byProducts", byProducts.value);
   }
 
   // Добавление информации о ПРОДАЖАХ
@@ -332,28 +329,29 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   };
 
   // Добавление информации о ЗАКАЗАХ
-  // const addOrdersByProducts = async() => {
-  //   loadingEnrichmentByProducts.value += 1;
-  //
-  //   for (const company of companyArray.value) {
-  //     try {
-  //       const ordersData = await getOrders({
-  //         apiToken: company.apiToken,
-  //         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-  //       });
-  //
-  //       byProducts.value = updateOrdersByProducts({
-  //         byProducts: byProducts.value,
-  //         data: ordersData,
-  //         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
-  //       });
-  //     } catch (error) {
-  //       message.error("Ошибка при загрузки информации о продажах");
-  //       console.error("addOrdersByProducts", error);
-  //     }
-  //   }
-  //   loadingEnrichmentByProducts.value -= 1;
-  // };
+  const addOrdersByProducts = async() => {
+    loadingEnrichmentByProducts.value += 1;
+
+    for (const company of companyArray.value) {
+      try {
+        const ordersData = await getOrders({
+          apiToken: company.apiToken,
+          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        });
+
+        byProducts.value = updateOrdersByProducts({
+          byProducts: byProducts.value,
+          data: ordersData,
+          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
+        });
+      } catch (error) {
+        message.error("Ошибка при загрузки информации о продажах");
+        console.error("addOrdersByProducts", error);
+      }
+    }
+    loadingEnrichmentByProducts.value -= 1;
+  };
 
   // Добавление информации о ПЛАТНОМ ХРАНЕНИИ
   const enrichmentByProductsWithStorage = async() => {
@@ -513,14 +511,11 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       }
 
       function getProducts(object) {
-        // console.log("object", object);
-
         if (object.type === 8) {
           return object.autoParams?.nms[0];
         } else if (object.type === 9) {
           return object.unitedParams[0]?.nms[0];
         }
-        // return null;
       }
 
       return data.map(item => ({
@@ -545,36 +540,6 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       dataAdvertsNmId = await fetchDataPromotion({ apiToken: company.apiToken, adverts });
     }
 
-    // function aggregateUpdSum(data1, data2) {
-    //   // Шаг 1: Суммируем updSum по advertId
-    //   const advertSumMap = new Map();
-    //
-    //   data1.forEach(({ advertId, updSum }) => {
-    //     // console.log(`${ advertId } - ${ updSum }`);
-    //
-    //     advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
-    //   });
-    //
-    //   console.log("advertSumMap", advertSumMap);
-    //
-    //   // Шаг 2: Сопоставляем advertId с nmId и суммируем по nmId
-    //   const nmSumMap = new Map();
-    //
-    //   data2.forEach(({ advertId, nmId }) => {
-    //     if (advertSumMap.has(advertId)) {
-    //       const sumToAdd = advertSumMap.get(advertId);
-    //       console.log(`nmId: ${nmId}, advertId: ${advertId}, adding: ${sumToAdd}`);
-    //
-    //       nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + sumToAdd);
-    //     }
-    //   });
-    //
-    //   console.log("nmSumMap", nmSumMap);
-    //
-    //   // Шаг 3: Преобразуем Map обратно в массив объектов
-    //   return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
-    // }
-
     function aggregateUpdSum(data1, data2) {
       // Шаг 1: Суммируем updSum по advertId
       const advertSumMap = new Map();
@@ -598,39 +563,11 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         }
       });
 
-      // console.log("nmSumMap", nmSumMap);
-
       // Шаг 3: Преобразуем Map обратно в массив объектов
       return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
     }
 
     const result = aggregateUpdSum(promotion.value, dataAdvertsNmId);
-
-    // // Шаг 1: Суммируем updSum по advertId
-    // const advertSum = promotion.value.reduce((acc, item) => {
-    //   if (!acc[item.advertId]) {
-    //     acc[item.advertId] = 0;
-    //   }
-    //   acc[item.advertId] += item.updSum;
-    //   return acc;
-    // }, {});
-    //
-    // console.log("advertSum", advertSum);
-    //
-    // // Шаг 2: Группируем по nmId и суммируем updSum
-    // const nmIdSum = dataAdvertsNmId.reduce((acc, item) => {
-    //   if (!acc[item.nmId]) {
-    //     acc[item.nmId] = 0;
-    //   }
-    //   acc[item.nmId] += advertSum[item.advertId] || 0;
-    //   return acc;
-    // }, {});
-    //
-    // // Шаг 3: Преобразуем результат в массив объектов
-    // const result = Object.keys(nmIdSum).map(nmId => ({
-    //   nmId: parseInt(nmId, 10),
-    //   updSum: nmIdSum[nmId]
-    // }));
 
     byProducts.value = updateByProductsWithPromotion(byProducts.value, result);
 
@@ -654,7 +591,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     enrichmentWbArticles,
     createByProducts,
     addSalesByProducts,
-    // addOrdersByProducts,
+    addOrdersByProducts,
     enrichmentByProductsWithStorage,
     enrichmentByProductsWithAcceptanceReport,
     enrichmentByProductsWithPromotion,

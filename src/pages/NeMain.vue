@@ -40,7 +40,7 @@ const handleFiltersDatesChange = async (isOpen) => {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
       analyticsStore.createByProducts();
       await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
-      // await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
+      await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
       await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
       await analyticsStore.enrichmentByProductsWithPromotion();
     }
@@ -63,7 +63,7 @@ onMounted(async () => {
   // await analyticsStore.enrichmentWbArticles();
   await analyticsStore.createByProducts();
   await analyticsStore.addSalesByProducts();
-  // await analyticsStore.addOrdersByProducts();
+  await analyticsStore.addOrdersByProducts();
   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
   await analyticsStore.enrichmentByProductsWithPromotion();
 
@@ -226,16 +226,16 @@ onMounted(async () => {
 <!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
 <!--        />-->
 
-        <!--        <NeCard-->
-        <!--          title="Заказы"-->
-        <!--          info=""-->
-        <!--          :parameters="[-->
-        <!--            { value: analyticsStore.stats.orders, symbol: '₽', roundTheValue: true },-->
-        <!--            { value: analyticsStore.stats.ordersCount, symbol: 'шт' }-->
-        <!--          ]"-->
-        <!--          fieldName="orders"-->
-        <!--          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"-->
-        <!--        />-->
+        <NeCard
+          title="Заказы"
+          info=""
+          :parameters="[
+            { value: analyticsStore.stats.orders, symbol: '₽', roundTheValue: true },
+            { value: analyticsStore.stats.ordersCount, symbol: 'шт' }
+          ]"
+          fieldName="orders"
+          :loading="analyticsStore.loadingEnrichmentByProducts !== 0"
+        />
 
         <NeCard
           title="Налоги / Комиссия"
