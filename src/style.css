@@ -14,4 +14,172 @@ p:last-child {
 }
 
 /*---*/
+.page {
+  padding: 10px 10px 30px 10px;
+}
+
+.spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 40px);
+}
+
+.form__items {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.period-report__title,
+.filter__title {
+  font-size: 20px;
+}
+
+.period-report__items {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.filter__items {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.table {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-gap: 10px;
+}
+
+@media (min-width: 680px) {
+  .form__items {
+    grid-template-columns: 1fr;
+  }
+
+  .period-report__items {
+    grid-template-columns: 1fr;
+  }
+
+  .filter__items {
+    grid-template-columns: repeat(3, 1fr);
+    grid-column-gap: 10px;
+  }
+
+  .table {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 840px) {
+  .form__items {
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: 10px;
+  }
+
+  .period-report__items {
+    grid-template-columns: 1fr;
+  }
+
+  .table {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1180px) {
+  .period-report__items {
+    grid-template-columns: 1fr;
+  }
+
+  .table {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.card {
+  background-color: #fff;
+  border-radius: 10px;
+  border: 1px solid #d9d9d9;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px;
+}
+
+.card__header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.card__header-title {
+  margin-bottom: 4px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  padding-right: 10px;
+}
+
+.card__body {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.card__body-value {
+  line-height: 1.5714285714285714;
+  font-size: 18px;
+}
+
+.card__body-symbol {
+  font-size: 18px;
+}
+
+@media (min-width: 1520px) {
+  .card {
+    background-color: #fff;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 15px;
+  }
+
+  .card__header {
+    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .card__header-title {
+    margin-bottom: 4px;
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 14px;
+    padding-right: 10px;
+  }
+
+  .card__body {
+    align-items: center;
+    display: flex;
+  }
+
+  .card__body-value {
+    line-height: 1.5714285714285714;
+    font-size: 24px;
+  }
+
+  .card__body-symbol {
+    font-size: 18px;
+  }
+}
+
+.select-all-option {
+  padding: 5px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+  border-radius: 4px;
+}
+
+.select-all-option:hover {
+  background: #f5f5f5;
+}
 
