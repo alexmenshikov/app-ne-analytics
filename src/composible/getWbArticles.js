@@ -1,7 +1,7 @@
 import axios from "axios";
 import { message } from "ant-design-vue";
 
-export async function getWbArticles({ apiToken }) {
+export async function getWbArticles({ apiToken, company }) {
   try {
     const response = await axios.post(
       "https://content-api.wildberries.ru/content/v2/get/cards/list",
@@ -38,7 +38,8 @@ export async function getWbArticles({ apiToken }) {
       vendorCode: card.vendorCode,
       title: card.title,
       photo: card.photos ? card.photos[0].big : null,
-      category: card.subjectName
+      category: card.subjectName,
+      company: company
     }));
   } catch (error) {
     message.error("Ошибка при загрузке карточек товара");

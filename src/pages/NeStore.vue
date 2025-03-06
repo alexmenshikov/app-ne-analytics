@@ -192,33 +192,6 @@ const columns = [
         </template>
 
         <template v-if="column.key === 'actions'">
-<!--          <a-button-->
-<!--            class="cell-actions-action default"-->
-<!--            shape="circle"-->
-<!--            type="link"-->
-<!--            @click="companyEdit(record)"-->
-<!--          >-->
-<!--            <template #icon>-->
-<!--              <a-edit-outlined />-->
-<!--            </template>-->
-<!--            <span>Редактировать</span>-->
-<!--          </a-button>-->
-
-<!--          <a-button-->
-<!--            class="cell-actions-action delete"-->
-<!--            type="link"-->
-<!--            @click="analyticsStore.removeCompany(record.id)"-->
-<!--          >-->
-<!--            <template #icon>-->
-<!--              <a-delete-outlined />-->
-<!--            </template>-->
-<!--            <span>Удалить</span>-->
-<!--          </a-button>-->
-
-<!--          <div-->
-<!--            class="cell-actions-action default"-->
-<!--            @click="companyEdit(record)"-->
-<!--          >-->
           <div class="cell-actions-action default">
             <a-edit-outlined />
             <span>Редактировать</span>
@@ -244,10 +217,6 @@ const columns = [
 <style scoped>
 .page {
   padding: 16px 24px 16px;
-}
-
-.form__item {
-  max-width: 250px;
 }
 
 .cell-actions-action {

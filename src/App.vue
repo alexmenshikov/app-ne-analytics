@@ -25,6 +25,9 @@ onMounted(async () => {
 
     await analyticsStore.enrichmentCompaniesInfo();
     analyticsStore.fillingTax();
+    await analyticsStore.enrichmentWbArticles();
+    await analyticsStore.createByProducts();
+    await analyticsStore.addSalesByProducts();
   }
 
   // if(analyticsStore.companyArray && analyticsStore.companyArray.length > 0) {

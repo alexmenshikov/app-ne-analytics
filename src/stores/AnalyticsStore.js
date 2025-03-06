@@ -194,30 +194,74 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   let isFirstLoad = true; // Флаг для защиты от двойного вызова
 
   const optionCompanies = computed(() => {
-    return companyArray.value.map(company => ({
-      value: company.name,
-      label: company.name
-    }));
-  });
-
-  const optionCategories = computed(() => {
+    const selectedBrands = filters.value.brands;
     const selectedArticles = filters.value.articles;
 
     return Array.from(
       new Map(wbArticles.value
-        .filter(article => selectedArticles.length === 0 || selectedArticles.includes(article.nmID))
+        .filter(article =>
+          (selectedBrands.length === 0 || selectedBrands.includes(article.brand)) &&
+          (selectedArticles.length === 0 || selectedArticles.includes(article.nmID))
+        )
+        .map(article => {
+          // Находим объект компании в companyArray по article.company (сравниваем с name)
+          const companyObj = companyArray.value.find(c => c.name === article.company);
+          return companyObj ? [companyObj.name, { value: companyObj.name, label: companyObj.name }] : null;
+        })
+        .filter(Boolean) // Убираем null, если компания не найдена
+      ).values()
+    );
+  });
+
+  const optionBrand = computed(() => {
+    const selectedCompanies = filters.value.companies;
+    const selectedArticles = filters.value.articles;
+
+    return Array.from(
+      new Map(wbArticles.value
+        .filter(article =>
+          (selectedCompanies.length === 0 || selectedCompanies.includes(article.company)) &&
+          (selectedArticles.length === 0 || selectedArticles.includes(article.nmID))
+        )
+        .map(article => [article.brand, {
+          value: article.brand,
+          label: article.brand
+        }])
+      ).values()
+    );
+  });
+
+  const optionCategories = computed(() => {
+    const selectedArticles = filters.value.articles;
+    const selectedCompanies = filters.value.companies;
+    const selectedBrands = filters.value.brands;
+
+    return Array.from(
+      new Map(wbArticles.value
+        .filter(article =>
+          (selectedCompanies.length === 0 || selectedCompanies.includes(article.company)) &&
+          (selectedBrands.length === 0 || selectedBrands.includes(article.brand)) &&
+          (selectedArticles.length === 0 || selectedArticles.includes(article.nmID))
+        )
         .map(article => [article.category, {
           value: article.category,
           label: article.category
-        }])).values()
+        }])
+      ).values()
     );
   });
 
   const optionArticles = computed(() => {
     const selectedCategories = filters.value.categories;
+    const selectedCompanies = filters.value.companies;
+    const selectedBrands = filters.value.brands;
 
     return wbArticles.value
-      .filter(article => selectedCategories.length === 0 || selectedCategories.includes(article.category))
+      .filter(article =>
+        (selectedCategories.length === 0 || selectedCategories.includes(article.category)) &&
+        (selectedCompanies.length === 0 || selectedCompanies.includes(article.company)) &&
+        (selectedBrands.length === 0 || selectedBrands.includes(article.brand))
+      )
       .map(article => ({
         value: article.nmID,
         label: article.vendorCode
@@ -285,6 +329,13 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
       if (newLength > oldLength) {
         await enrichmentCompaniesInfo();
+        await enrichmentWbArticles();
+        await createByProducts();
+        await addSalesByProducts();
+      } else if (newLength < oldLength) {
+        await enrichmentWbArticles();
+        await createByProducts();
+        await addSalesByProducts();
       }
     }
   );
@@ -322,6 +373,29 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   //   isEnrichmentWbArticlesDone.value = true;
   //   loading.value -= 1;
   // };
+
+  const getCompaniesArticle = async (array) => {
+    const promises = array.map(company =>
+      getWbArticles({ apiToken: company.apiToken, company: company.name })
+        .then(data => {
+          return data;
+        })
+    );
+
+    const result = await Promise.all(promises); // Возвращаем массив артикулов
+    return result.flat();
+  };
+
+  const enrichmentWbArticles = async () => {
+    loading.value += 1;
+    try {
+      wbArticles.value = await getCompaniesArticle(companyArray.value);
+    } catch (error) {
+      console.error("Ошибка в enrichmentWbArticles:", error);
+    } finally {
+      loading.value -= 1;
+    }
+  };
 
   const initCompanyArray = (array) => {
     companyArray.value = array || [];
@@ -663,6 +737,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     loading,
     loadingEnrichmentByProducts,
     optionCompanies,
+    optionBrand,
     optionCategories,
     optionArticles,
     enrichmentCompaniesInfo,

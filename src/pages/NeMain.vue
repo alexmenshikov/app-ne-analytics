@@ -39,10 +39,10 @@ const handleFiltersDatesChange = async (isOpen) => {
     ) {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
       analyticsStore.createByProducts();
-      await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
-      await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
-      await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
-      await analyticsStore.enrichmentByProductsWithPromotion();
+      // await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+      // await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
+      // await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
+      // await analyticsStore.enrichmentByProductsWithPromotion();
     }
   }
 };
@@ -61,11 +61,12 @@ onMounted(async () => {
   // await analyticsStore.enrichmentCompaniesInfo();
   // analyticsStore.fillingNalog();
   // await analyticsStore.enrichmentWbArticles();
-  await analyticsStore.createByProducts();
-  await analyticsStore.addSalesByProducts();
-  await analyticsStore.addOrdersByProducts();
-  await analyticsStore.enrichmentByProductsWithAcceptanceReport();
-  await analyticsStore.enrichmentByProductsWithPromotion();
+
+  // await analyticsStore.createByProducts();
+  // await analyticsStore.addSalesByProducts();
+  // await analyticsStore.addOrdersByProducts();
+  // await analyticsStore.enrichmentByProductsWithAcceptanceReport();
+  // await analyticsStore.enrichmentByProductsWithPromotion();
 
   // cardList.value = await getWbArticles({ apiToken: companyArray[0].apiToken });
   // sellerInfo.value = await getSellerInfo({ apiToken: companyArray[0].apiToken });
@@ -112,6 +113,17 @@ onMounted(async () => {
                     v-model:value="analyticsStore.filters.companies"
                     :options="analyticsStore.optionCompanies"
                     placeholder="Все компании"
+                    option-filter-prop="label"
+                  />
+                </a-form-item>
+              </div>
+
+              <div class="filter__items-item">
+                <a-form-item label="Бренды">
+                  <ne-custom-select
+                    v-model:value="analyticsStore.filters.brands"
+                    :options="analyticsStore.optionBrand"
+                    placeholder="Все бренды"
                     option-filter-prop="label"
                   />
                 </a-form-item>
