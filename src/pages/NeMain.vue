@@ -112,6 +112,7 @@ onMounted(async () => {
                     v-model:value="analyticsStore.filters.companies"
                     :options="analyticsStore.optionCompanies"
                     placeholder="Все компании"
+                    option-filter-prop="label"
                   />
                 </a-form-item>
               </div>
@@ -122,6 +123,7 @@ onMounted(async () => {
                     v-model:value="analyticsStore.filters.categories"
                     :options="analyticsStore.optionCategories"
                     placeholder="Все категории"
+                    option-filter-prop="label"
                   />
                 </a-form-item>
               </div>
@@ -132,6 +134,7 @@ onMounted(async () => {
                     v-model:value="analyticsStore.filters.articles"
                     :options="analyticsStore.optionArticles"
                     placeholder="Все артикулы"
+                    option-filter-prop="label"
                   />
                 </a-form-item>
               </div>

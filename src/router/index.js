@@ -14,6 +14,10 @@ const router = createRouter({
     {
       path: "/cost",
       component: () => import("@/pages/NeCost.vue"),
+    },
+    {
+      path: "/store",
+      component: () => import("@/pages/NeStore.vue"),
     }
   ]
 })

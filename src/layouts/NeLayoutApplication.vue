@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watchEffect } from "vue";
+import { useRoute } from "vue-router";
 import { RouterLink } from "vue-router";
 import {
   Layout as ALayout,
@@ -11,12 +12,32 @@ import {
 import {
   AppstoreOutlined as AAppstoreOutlined,
   AuditOutlined as AAuditOutlined,
-  ContainerOutlined as AAContainerOutlined,
   ShoppingOutlined as AAShoppingOutlined,
+  PlusCircleOutlined as AAPlusCircleOutlined,
 } from "@ant-design/icons-vue";
 
 const collapsed = ref<boolean>(true);
 const selectedKeys = ref<string[]>(['analytics']);
+
+const route = useRoute();
+
+watchEffect(() => {
+  const currentRoute = route.path;
+  switch (currentRoute) {
+    case '/store':
+      selectedKeys.value = ['store'];
+      break;
+    case '/tax':
+      selectedKeys.value = ['tax'];
+      break;
+    case '/cost':
+      selectedKeys.value = ['cost'];
+      break;
+    default:
+      selectedKeys.value = ['analytics'];
+      break;
+  }
+});
 </script>
 
 <template>
@@ -30,6 +51,13 @@ const selectedKeys = ref<string[]>(['analytics']);
         theme="dark"
         mode="inline"
       >
+        <a-menu-item key="store">
+          <router-link to="/store">
+            <a-a-plus-circle-outlined />
+            <span>Добавить магазин</span>
+          </router-link>
+        </a-menu-item>
+
         <a-menu-item key="analytics">
           <router-link to="/">
             <a-appstore-outlined />

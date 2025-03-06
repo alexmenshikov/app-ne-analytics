@@ -1,33 +1,63 @@
-import { defineStore } from "pinia";
-import { computed, nextTick, ref, watch } from "vue";
-import { message } from "ant-design-vue";
+import {defineStore} from "pinia";
+import {computed, nextTick, ref, watch} from "vue";
+import {message} from "ant-design-vue";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
-import { getSellerInfo } from "../composible/getSellerInfo.js";
-import { getWbArticles } from "../composible/getWbArticles.js";
-import { getSales } from "../composible/getSales.js";
-import { getOrders } from "../composible/getOrders.js";
-import { createPaidStorage } from "../composible/createPaidStorage.js";
-import { getPaidStorage } from "../composible/getPaidStorage.js";
-import { updateSalesByProducts } from "../composible/updateSalesByProducts.js";
-import { updateOrdersByProducts } from "../composible/updateOrdersByProducts.js";
-import { updateByProductsWithStorage } from "../composible/updateByProductsWithStorage.js";
-import { updateByProductsWithPromotion } from "../composible/updateByProductsWithPromotion.js";
-import { getAcceptanceReport } from "../composible/getAcceptanceReport.js";
-import { updateByProductsWithAcceptanceReport } from "../composible/updateByProductsWithAcceptanceReport.js";
+import {getSellerInfo} from "../composible/getSellerInfo.js";
+import {getWbArticles} from "../composible/getWbArticles.js";
+import {getSales} from "../composible/getSales.js";
+import {getOrders} from "../composible/getOrders.js";
+import {createPaidStorage} from "../composible/createPaidStorage.js";
+import {getPaidStorage} from "../composible/getPaidStorage.js";
+import {updateSalesByProducts} from "../composible/updateSalesByProducts.js";
+import {updateOrdersByProducts} from "../composible/updateOrdersByProducts.js";
+import {updateByProductsWithStorage} from "../composible/updateByProductsWithStorage.js";
+import {updateByProductsWithPromotion} from "../composible/updateByProductsWithPromotion.js";
+import {getAcceptanceReport} from "../composible/getAcceptanceReport.js";
+import {updateByProductsWithAcceptanceReport} from "../composible/updateByProductsWithAcceptanceReport.js";
 import {getHistoryCosts} from "@/composible/getHistoryCosts.js";
 import {getPromotion} from "@/composible/getPromotion.js";
+
+import wildberriesLogo from "@/assets/icons/wildberries.svg";
+import ozonLogo from "@/assets/icons/ozon.svg";
+import yaMarketLogo from "@/assets/icons/ya_market.svg";
 
 dayjs.extend(isoWeek);
 
 export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
-  const companyArray = ref([
+  const marketplaces = [
+    {
+      id: 0,
+      label: "Wildberries",
+      value: "wildberries",
+      logo: wildberriesLogo,
+    },
     {
       id: 1,
-      // apiToken: "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwMTIwdjEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc1MzgyNTE3NiwiaWQiOiIwMTk0YWM0Ny1kNWI3LTdjYzItYTRmZC1hYzgwNzI4ZjU3YTAiLCJpaWQiOjE5NjI0NzM2LCJvaWQiOjQxMjc0NjcsInMiOjEwNzM3NDE5MjYsInNpZCI6Ijg0YjlkNmQzLTAxMTItNDBiZi05MTZiLWVlZDFkOGY3NjBhNSIsInQiOmZhbHNlLCJ1aWQiOjE5NjI0NzM2fQ.9rXa96vOM8BIH5HcHYMyUWqI7G3tbcrEgpiqmAI0GQQisRlEooezoKxi-zcem8JMmJtsrejJC4rybYCW-LaZ6g",
-      apiToken: "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwMjE3djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc1Njg2MzEwNiwiaWQiOiIwMTk1NjE1YS1mODBjLTdjMjUtYmQ0Yi05ZDQzNDg3NWU4MjciLCJpaWQiOjk2OTgyNDY4LCJvaWQiOjQwNzg0NjMsInMiOjEwNzM3NDE5MjYsInNpZCI6IjBmMzY0NjAzLWE4MWMtNDNhZC05MjliLTJhZjMxOWFhZTczYyIsInQiOmZhbHNlLCJ1aWQiOjk2OTgyNDY4fQ.oX7gGsOIELHR5loystmXbcAM1MGqbDN2TbyA8gHVLh7rk-QDKgcs_xgB8n_rIPUdRR3HHYwaa3Y4-POMWMVRCw",
+      label: "Ozon",
+      value: "ozon",
+      logo: ozonLogo,
     },
-  ]);
+    {
+      id: 2,
+      label: "Яндекс Маркет",
+      value: "ya_market",
+      logo: yaMarketLogo,
+    }
+  ];
+  const accessMethods = [
+    {
+      id: 0,
+      label: "Аналитика",
+      value: "analytics",
+    },
+    {
+      id: 1,
+      label: "Вопросы и отзывы",
+      value: "questions_and_reviews",
+    }
+  ];
+  const companyArray = ref([]);
   const wbArticles = ref([]);
   const byProducts = ref([]);
   const filters = ref({
@@ -36,6 +66,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       dayjs().subtract(1, 'week').endOf('isoWeek')
     ],
     companies: [],
+    brands: [],
     categories: [],
     articles: [],
     tax: [],
@@ -159,11 +190,13 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   const loading = ref(0);
   const loadingEnrichmentByProducts = ref(0);
   const isEnrichmentWbArticlesDone = ref(false);
+  const initialized = ref(false);
+  let isFirstLoad = true; // Флаг для защиты от двойного вызова
 
   const optionCompanies = computed(() => {
     return companyArray.value.map(company => ({
-      value: company.tradeMark,
-      label: company.tradeMark
+      value: company.name,
+      label: company.name
     }));
   });
 
@@ -191,6 +224,33 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       }));
   });
 
+  const getCompaniesInfo = async (array) => {
+    const promises = array.map(company =>
+      getSellerInfo({ apiToken: company.apiToken })
+        .then(data => {
+          if (data) {
+            company.name = data.name;
+            company.sid = data.sid;
+          }
+          return company; // Возвращаем обновлённую компанию
+        })
+    );
+
+    return await Promise.all(promises); // Возвращаем массив обновлённых компаний
+  };
+
+  // Функция для обогащения информации о компаниях
+  const enrichmentCompaniesInfo = async () => {
+    loading.value += 1;
+    try {
+      await getCompaniesInfo(companyArray.value);
+    } catch (error) {
+      console.error("Ошибка в enrichmentCompaniesInfo:", error);
+    } finally {
+      loading.value -= 1;
+    }
+  };
+
   watch(optionCategories, (newCategories) => {
     const availableCategories = newCategories.map(c => c.value);
     const updatedCategories = filters.value.categories.filter(c => availableCategories.includes(c));
@@ -213,46 +273,31 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
   });
 
-  // Добавление информации о КОМПАНИЯХ
-  const enrichmentCompaniesInfo = async() => {
-    loading.value += 1;
-    for (const company of companyArray.value) {
-      const data = await getSellerInfo({ apiToken: company.apiToken });
-      if (data) {
-        company.name = data.name;
-        company.sid = data.sid;
-        company.tradeMark = data.tradeMark;
+  // Следим за изменениями companyArray
+  watch(() => companyArray.value.length,
+    async (newLength, oldLength) => {
+      if (isFirstLoad) {
+        isFirstLoad = false; // Игнорируем первый вызов при загрузке
+        return;
+      }
+
+      localStorage.setItem("companyArray", JSON.stringify(companyArray.value));
+
+      if (newLength > oldLength) {
+        await enrichmentCompaniesInfo();
       }
     }
-    loading.value -= 1;
-  };
+  );
 
+  // Формирование списка для страницы с НАЛОГ
   const fillingTax = () => {
     companyArray.value.forEach(company => {
       filters.value.tax.push({
-        tradeMark: company.tradeMark,
+        id: company.id,
+        name: company.name,
         value: 7,
       })
     })
-  }
-
-  function setValueCost(vendorCode) {
-    if (
-      vendorCode === "NV1Bblack" ||
-      vendorCode === "NV1Bbeige" ||
-      vendorCode === "NV1Bcoffee"
-    ) {
-      return 364;
-    } else if (
-      vendorCode === "NV3Ucoffee" ||
-      vendorCode === "NV3Ubeige" ||
-      vendorCode === "NV3Umix" ||
-      vendorCode === "NV3Ublack"
-    ) {
-      return 305;
-    } else {
-      return 0;
-    }
   }
 
   const fillingCost = () => {
@@ -262,20 +307,47 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         tradeMark: article.brand,
         nmID: article.nmID,
         vendorCode: article.vendorCode,
-        value: setValueCost(article.vendorCode),
+        value: 0,
       });
     });
   };
 
   // Добавление информации об АРТИКУЛАХ
-  const enrichmentWbArticles = async() => {
-    loading.value += 1;
-    isEnrichmentWbArticlesDone.value = false;
-    for (const company of companyArray.value) {
-      wbArticles.value = await getWbArticles({apiToken: company.apiToken});
-    }
-    isEnrichmentWbArticlesDone.value = true;
-    loading.value -= 1;
+  // const enrichmentWbArticles = async() => {
+  //   loading.value += 1;
+  //   isEnrichmentWbArticlesDone.value = false;
+  //   for (const company of companyArray.value) {
+  //     wbArticles.value = await getWbArticles({apiToken: company.apiToken});
+  //   }
+  //   isEnrichmentWbArticlesDone.value = true;
+  //   loading.value -= 1;
+  // };
+
+  const initCompanyArray = (array) => {
+    companyArray.value = array || [];
+  };
+
+  const addCompany = ({ marketplace, company, accessMethod, apiToken }) => {
+    const id = Date.now().toString(36) + Math.random().toString(36).substring(2); // Генерация уникального ID
+
+    companyArray.value.push({
+      id,
+      marketplace: {
+        ...marketplace,
+        logo: marketplaces.find(item => item.value === marketplace.value).logo,
+      },
+      company,
+      accessMethod,
+      apiToken,
+    })
+  };
+
+  const editCompany = (company) => {
+    // companyArray.value = companyArray.value.filter(company => company.id !== id);
+  };
+
+  const removeCompany = (id) => {
+    companyArray.value = companyArray.value.filter(company => company.id !== id);
   };
 
   // Создание списка продуктов на основе артикулов
@@ -576,6 +648,13 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   }
 
   return {
+    initialized,
+    initCompanyArray,
+    marketplaces,
+    accessMethods,
+    addCompany,
+    editCompany,
+    removeCompany,
     companyArray,
     wbArticles,
     byProducts,

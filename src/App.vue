@@ -16,10 +16,24 @@ dayjs.locale(ru);
 dayjs.extend(utc);
 
 onMounted(async () => {
-  await analyticsStore.enrichmentCompaniesInfo();
-  await analyticsStore.enrichmentWbArticles();
-  analyticsStore.fillingTax();
-  analyticsStore.fillingCost();
+  // analyticsStore.initCompanyArray(JSON.parse(localStorage.getItem("companyArray")));
+  const savedCompanies = JSON.parse(localStorage.getItem("companyArray"));
+  analyticsStore.initCompanyArray(savedCompanies);
+
+  if (!analyticsStore.initialized && analyticsStore.companyArray && analyticsStore.companyArray.length > 0) {
+    analyticsStore.initialized = true; // Запрещаем повторный вызов
+
+    await analyticsStore.enrichmentCompaniesInfo();
+    analyticsStore.fillingTax();
+  }
+
+  // if(analyticsStore.companyArray && analyticsStore.companyArray.length > 0) {
+  //   await analyticsStore.enrichmentCompaniesInfo();
+  //   await analyticsStore.enrichmentWbArticles();
+  //   analyticsStore.fillingTax();
+  //   analyticsStore.fillingCost();
+  // }
+  // analyticsStore.isFirstRun = false;
 });
 </script>
 

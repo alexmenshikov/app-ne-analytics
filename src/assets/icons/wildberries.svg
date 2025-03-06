@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 358.99 358.99">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        fill-rule: evenodd;
+      }
+
+      .cls-2 {
+        fill: url(#GradientFill_1);
+      }
+    </style>
+    <linearGradient id="GradientFill_1" data-name="GradientFill 1" x1="87.13" y1="333.44" x2="271.86" y2="25.56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5a2e91"/>
+      <stop offset="1" stop-color="#c359a1"/>
+    </linearGradient>
+  </defs>
+  <g id="_Слой_1" data-name="Слой 1">
+    <g>
+      <circle class="cls-2" cx="179.5" cy="179.5" r="179.5"/>
+      <path class="cls-1" d="M268.51,134.76c-12.22,0-23.25,3.71-32.68,10.04v-57.74h-26.06v106.45c0,32.39,26.35,58.45,58.6,58.45s58.89-25.91,58.89-58.74-26.06-58.45-58.75-58.45h0ZM150.25,201.01l-23.88-62.1h-18.25l-23.98,62.1-23.98-62.1h-28.43l41.94,109.23h18.28l25.18-65.07,25.32,65.07h18.24l41.83-109.23h-28.28l-23.98,62.1h0ZM268.37,225.89c-17.66,0-32.54-14.1-32.54-32.53s14-32.39,32.68-32.39,32.69,14.58,32.69,32.39-14.89,32.53-32.83,32.53Z"/>
+    </g>
+  </g>
+</svg>
