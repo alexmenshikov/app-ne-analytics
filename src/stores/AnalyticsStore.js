@@ -567,56 +567,117 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
 
   // Добавление информации о ПЛАТНОМ ХРАНЕНИИ
-  const enrichmentByProductsWithStorage = async() => {
-    async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
-      let currentDate = dayjs(dateFrom);
-      const endDate = dayjs(dateTo);
-      const loadingGetPaidStorage = message.loading("Загрузка отчёта о платном хранении", 0);
+  const fetchDataInBatchesPaid = async ({ apiToken, dateFrom, dateTo, limit }) => {
+    let currentDate = dayjs(dateFrom);
+    const endDate = dayjs(dateTo);
+    const loadingGetPaidStorage = message.loading("Загрузка отчёта о платном хранении", 0);
 
-      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-        const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+    while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+      const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
 
-        try {
-          const taskIdPaidStorage = await createPaidStorage({
-            apiToken: apiToken,
-            dateFrom: currentDate.format('YYYY-MM-DD'),
-            dateTo: batchEndDate.format('YYYY-MM-DD'),
-          });
+      try {
+        const taskIdPaidStorage = await createPaidStorage({
+          apiToken: apiToken,
+          dateFrom: currentDate.format('YYYY-MM-DD'),
+          dateTo: batchEndDate.format('YYYY-MM-DD'),
+        });
 
-          const storageData = await getPaidStorage({
-            apiToken: apiToken,
-            task_id: taskIdPaidStorage
-          });
+        const storageData = await getPaidStorage({
+          apiToken: apiToken,
+          task_id: taskIdPaidStorage
+        });
 
-          byProducts.value = updateByProductsWithStorage(byProducts.value, storageData);
-        } catch (error) {
-          loadingGetPaidStorage();
-          console.error(error);
-        }
-
-        currentDate = currentDate.add(limit, 'day');
-
-        // Добавляем задержку в 1 минуту между запросами
-        if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-          await new Promise(resolve => setTimeout(resolve, 65000));
-        }
+        byProducts.value = updateByProductsWithStorage(byProducts.value, storageData);
+      } catch (error) {
+        loadingGetPaidStorage();
+        console.error(error);
       }
 
-      loadingGetPaidStorage();
+      currentDate = currentDate.add(limit, 'day');
+
+      if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+        await new Promise(resolve => setTimeout(resolve, 65000));
+      }
     }
 
-    // Делим запросы и отправляем каждую минуту по 8 дней
-    for (const company of companyArray.value) {
-      await fetchDataInBatches({
+    loadingGetPaidStorage();
+  };
+
+  const getCompaniesStorageData = async (array, dateFrom, dateTo, limit) => {
+    const promises = array.map(company =>
+      fetchDataInBatchesPaid({
         apiToken: company.apiToken,
-        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-        limit: 8
-      });
+        dateFrom,
+        dateTo,
+        limit
+      })
+    );
 
-      // await new Promise(resolve => setTimeout(resolve, 65000));
+    await Promise.all(promises);
+  };
+
+  const enrichmentByProductsWithStorage = async () => {
+    try {
+      await getCompaniesStorageData(
+        companyArray.value,
+        dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+        8
+      );
+    } catch (error) {
+      console.error("Ошибка в enrichmentByProductsWithStorage:", error);
     }
-  }
+  };
+  // const enrichmentByProductsWithStorage = async() => {
+  //   async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
+  //     let currentDate = dayjs(dateFrom);
+  //     const endDate = dayjs(dateTo);
+  //     const loadingGetPaidStorage = message.loading("Загрузка отчёта о платном хранении", 0);
+  //
+  //     while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //       const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+  //
+  //       try {
+  //         const taskIdPaidStorage = await createPaidStorage({
+  //           apiToken: apiToken,
+  //           dateFrom: currentDate.format('YYYY-MM-DD'),
+  //           dateTo: batchEndDate.format('YYYY-MM-DD'),
+  //         });
+  //
+  //         const storageData = await getPaidStorage({
+  //           apiToken: apiToken,
+  //           task_id: taskIdPaidStorage
+  //         });
+  //
+  //         byProducts.value = updateByProductsWithStorage(byProducts.value, storageData);
+  //       } catch (error) {
+  //         loadingGetPaidStorage();
+  //         console.error(error);
+  //       }
+  //
+  //       currentDate = currentDate.add(limit, 'day');
+  //
+  //       // Добавляем задержку в 1 минуту между запросами
+  //       if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //         await new Promise(resolve => setTimeout(resolve, 65000));
+  //       }
+  //     }
+  //
+  //     loadingGetPaidStorage();
+  //   }
+  //
+  //   // Делим запросы и отправляем каждую минуту по 8 дней
+  //   for (const company of companyArray.value) {
+  //     await fetchDataInBatches({
+  //       apiToken: company.apiToken,
+  //       dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //       dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+  //       limit: 8
+  //     });
+  //
+  //     // await new Promise(resolve => setTimeout(resolve, 65000));
+  //   }
+  // }
 
   const fetchDataInBatches = async ({ apiToken, dateFrom, dateTo, limit }) => {
     let currentDate = dayjs(dateFrom);

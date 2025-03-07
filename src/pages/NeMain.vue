@@ -1,22 +1,17 @@
 <script setup>
 import dayjs from "dayjs";
-import { useAnalyticsStore } from "@/stores/AnalyticsStore.js";
+import {useAnalyticsStore} from "@/stores/AnalyticsStore.js";
 import NeCustomSelect from "@/components/NeCustomSelect.vue";
 import NeCard from "@/components/NeCard.vue";
-import { onMounted, ref } from "vue";
+import {onMounted, ref} from "vue";
+import {Form as AForm, FormItem as AFormItem, RangePicker as ARangePicker, Spin as ASpin,} from "ant-design-vue";
+
 const analyticsStore = useAnalyticsStore();
 const dateFormat = "DD MMM YYYY";
 
 // import { inject } from "vue";
 // const locale = inject("locale");
 // import ruRu from "ant-design-vue/es/locale/ru_RU";
-
-import {
-  Spin as ASpin,
-  Form as AForm,
-  FormItem as AFormItem,
-  RangePicker as ARangePicker,
-} from "ant-design-vue";
 
 const disabledDate = (current) => {
   const today = dayjs().startOf('day'); // Начало текущего дня
@@ -48,13 +43,12 @@ const handleFiltersDatesChange = async (isOpen) => {
 };
 
 async function updateData(value) {
-  const field = value;
-
-  if (field === "warehousePrice") {
+  if (value === "warehousePrice") {
     await analyticsStore.enrichmentByProductsWithStorage();
-  } else if (field === "acceptanceSum") {
-    await analyticsStore.enrichmentByProductsWithAcceptanceReport();
   }
+  // } else if (field === "acceptanceSum") {
+  //   await analyticsStore.enrichmentByProductsWithAcceptanceReport();
+  // }
 }
 
 onMounted(async () => {
