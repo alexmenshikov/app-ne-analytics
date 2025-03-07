@@ -67,7 +67,7 @@ function get() {
         <template #title>
           <span>{{ info }}</span>
         </template>
-        <InfoCircleOutlined />
+        <InfoCircleOutlined class="icon" />
       </a-tooltip>
     </div>
 
@@ -120,16 +120,20 @@ function get() {
 }
 
 .card__header {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
-  justify-content: space-between;
+  margin-bottom: 5px;
 }
 
 .card__header-title {
-  margin-bottom: 4px;
-  color: rgba(0, 0, 0, 0.45);
+  color: #5f6368;
   font-size: 12px;
   padding-right: 10px;
+}
+
+.icon {
+  color: #5f6368;
+  font-size: 12px;
 }
 
 .card__body {
@@ -140,10 +144,6 @@ function get() {
 
 .card__body-value {
   line-height: 1.5714285714285714;
-  font-size: 18px;
-}
-
-.card__body-symbol {
   font-size: 18px;
 }
 
@@ -158,14 +158,11 @@ function get() {
   }
 
   .card__header {
-    align-items: flex-start;
+    align-items: center;
     display: flex;
-    justify-content: space-between;
   }
 
   .card__header-title {
-    margin-bottom: 4px;
-    color: rgba(0, 0, 0, 0.45);
     font-size: 14px;
     padding-right: 10px;
   }
@@ -178,10 +175,6 @@ function get() {
   .card__body-value {
     line-height: 1.5714285714285714;
     font-size: 24px;
-  }
-
-  .card__body-symbol {
-    font-size: 18px;
   }
 }
 </style>

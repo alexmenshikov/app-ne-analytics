@@ -28,6 +28,10 @@ onMounted(async () => {
     await analyticsStore.enrichmentWbArticles();
     await analyticsStore.createByProducts();
     await analyticsStore.addSalesByProducts();
+    await analyticsStore.addOrdersByProducts();
+    await analyticsStore.enrichmentByProductsWithAcceptanceReport();
+    await analyticsStore.enrichmentByProductsWithPromotion();
+    analyticsStore.fillingCost();
   }
 
   // if(analyticsStore.companyArray && analyticsStore.companyArray.length > 0) {

@@ -38,11 +38,11 @@ const handleFiltersDatesChange = async (isOpen) => {
       JSON.stringify(analyticsStore.filters.dates)
     ) {
       previousDates.value = [...analyticsStore.filters.dates]; // Обновляем предыдущие даты
-      analyticsStore.createByProducts();
-      // await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
-      // await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
-      // await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
-      // await analyticsStore.enrichmentByProductsWithPromotion();
+      await analyticsStore.createByProducts();
+      await analyticsStore.addSalesByProducts(); // Календарь закрылся, значит выбор окончен — запускаем запрос
+      await analyticsStore.addOrdersByProducts(); // Получаем информацию о заказах
+      await analyticsStore.enrichmentByProductsWithAcceptanceReport(); // Получаем информацию о приёмке
+      await analyticsStore.enrichmentByProductsWithPromotion();
     }
   }
 };
@@ -157,7 +157,7 @@ onMounted(async () => {
 
       <div class="table">
         <NeCard
-          title="Чистая прибыль / Маржинальность"
+          title="Чистая прибыль / Марж-cть"
           info=""
           :parameters="[
             { value: analyticsStore.stats.profit, symbol: '₽', roundTheValue: true },
@@ -221,7 +221,7 @@ onMounted(async () => {
         />
 
         <NeCard
-          title="Платная приемка / Прочие удержания"
+          title="Плат. приемка / Пр. удержания"
           info=""
           :parameters="[
             { value: analyticsStore.stats.acceptanceSum, symbol: '₽', roundTheValue: true },
@@ -296,7 +296,7 @@ onMounted(async () => {
 
         <NeCard
           title="Себестоимость продаж"
-          info=""
+          info="Количество продаж артикула умноженное на (себестоимость + стоимость фф) (за вычетом возвратов)"
           :parameters="[
             { value: analyticsStore.stats.costOfSales, symbol: '₽' }
           ]"
@@ -316,7 +316,7 @@ onMounted(async () => {
 
         <NeCard
           title="Процент выкупа"
-          info=""
+          info="Соотношение количества выкупленных товаров к заказанным"
           :parameters="[
             { value: analyticsStore.stats.averageRedemption, symbol: '%' }
           ]"
@@ -365,6 +365,10 @@ onMounted(async () => {
   grid-template-columns: 1fr;
 }
 
+.ant-picker-range {
+  width: 100%;
+}
+
 .filter__items {
   display: grid;
   grid-template-columns: 1fr;
@@ -372,43 +376,35 @@ onMounted(async () => {
 
 .table {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   grid-gap: 10px;
 }
 
-@media (min-width: 680px) {
+@media (min-width: 640px) {
   .form__items {
     grid-template-columns: 1fr;
   }
 
   .period-report__items {
-    grid-template-columns: 1fr;
-  }
-
-  .filter__items {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     grid-column-gap: 10px;
   }
 
   .table {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (min-width: 840px) {
-  .form__items {
-    grid-template-columns: 1fr 1fr;
+  .filter__items {
+    grid-template-columns: repeat(2, 1fr);
     grid-column-gap: 10px;
-  }
-
-  .period-report__items {
-    grid-template-columns: 1fr;
   }
 }
 
 @media (min-width: 1180px) {
-  .period-report__items {
-    grid-template-columns: 1fr;
+  .filter__items {
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .table {

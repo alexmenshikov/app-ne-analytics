@@ -5,11 +5,14 @@ import {
   Input as AInput
 } from "ant-design-vue";
 import { useAnalyticsStore } from "@/stores/AnalyticsStore.js";
+import NePageHeader from "@/components/NePageHeader.vue";
 
 const analyticsStore = useAnalyticsStore();
 </script>
 
 <template>
+  <ne-page-header title="Себестоимость"/>
+
   <div class="page">
     <a-form ref="form" layout="vertical" class="form">
       <a-form-item v-for="(article, index ) in analyticsStore.filters.cost" :key="index" :label="`${article.tradeMark} - ${article.vendorCode}`" class="form__item">

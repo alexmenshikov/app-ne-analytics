@@ -20,6 +20,7 @@ const props = defineProps({
     :title="title"
     :sub-title="subTitle"
     @back="() => $router.go(-1)"
+    class="header"
   >
     <template #extra>
       <slot name="extra"/>
@@ -27,4 +28,8 @@ const props = defineProps({
   </a-page-header>
 </template>
 
-<style scoped></style>
+<style scoped>
+.header {
+  background-color: #fff;
+}
+</style>

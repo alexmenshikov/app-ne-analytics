@@ -106,7 +106,8 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         acc.commission += product.commission; // Комиссия
         acc.otherDeduction += product.otherDeduction;
 
-        const taxEntry = filters.value.tax?.find(company => company.tradeMark === product.brand_name);
+        const taxEntry = filters.value.tax?.find(company => company.name === product.company);
+
         const tax = (product.sales / 100) * (taxEntry ? taxEntry.value : 0)
         acc.tax += tax; // Налоги
 
@@ -119,7 +120,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         const costOfSales = product.salesCount * (costEntry ? costEntry.value : 0);
         acc.costOfSales += costOfSales; // Себестоимость продаж
 
-        const costOfGoodsCompensation = product.compensationCount > 0 ? (product.compensationCount * costEntry.value) : 0;
+        const costOfGoodsCompensation = product.compensationCount > 0 ? (product.compensationCount * (costEntry ? costEntry.value : 0)) : 0;
 
         const profit =
           product.sales - // Продажи
@@ -332,10 +333,16 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
         await enrichmentWbArticles();
         await createByProducts();
         await addSalesByProducts();
+        await addOrdersByProducts();
+        await enrichmentByProductsWithAcceptanceReport();
+        await enrichmentByProductsWithPromotion();
       } else if (newLength < oldLength) {
         await enrichmentWbArticles();
         await createByProducts();
         await addSalesByProducts();
+        await addOrdersByProducts();
+        await enrichmentByProductsWithAcceptanceReport();
+        await enrichmentByProductsWithPromotion();
       }
     }
   );
@@ -426,9 +433,9 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
 
   // Создание списка продуктов на основе артикулов
   const createByProducts = async () => {
-    if (!isEnrichmentWbArticlesDone.value) {
-      await enrichmentWbArticles();
-    }
+    // if (!isEnrichmentWbArticlesDone.value) {
+    //   await enrichmentWbArticles();
+    // }
 
     byProducts.value = [];
 
@@ -436,7 +443,7 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
       brand_name: article.brand,
       subject_name: article.category,
       nm_id: article.nmID,
-
+      company: article.company,
       // Поля, которые будут заполняться позже
       logistics: 0,
       logisticsCount: 0,
@@ -454,51 +461,110 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
   }
 
   // Добавление информации о ПРОДАЖАХ
-  const addSalesByProducts = async() => {
-    loadingEnrichmentByProducts.value += 1;
+  // const addSalesByProducts = async() => {
+  //   loadingEnrichmentByProducts.value += 1;
+  //
+  //   for (const company of companyArray.value) {
+  //     try {
+  //       const salesData = await getSales({
+  //         apiToken: company.apiToken,
+  //         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+  //       });
+  //
+  //       byProducts.value = updateSalesByProducts(byProducts.value, salesData);
+  //
+  //     } catch (error) {
+  //       message.error("Ошибка при загрузки информации о продажах");
+  //       console.error("addSalesByProducts", error);
+  //     }
+  //   }
+  //   loadingEnrichmentByProducts.value -= 1;
+  // };
 
-    for (const company of companyArray.value) {
-      try {
-        const salesData = await getSales({
-          apiToken: company.apiToken,
-          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-        });
+  const getSalesByProduct = async (array) => {
+    const promises = array.map(company =>
+      getSales({
+        apiToken: company.apiToken,
+        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+      })
+        .then(data => {
+          return data;
+        })
+    )
 
-        byProducts.value = updateSalesByProducts(byProducts.value, salesData);
-
-      } catch (error) {
-        message.error("Ошибка при загрузки информации о продажах");
-        console.error("addSalesByProducts", error);
-      }
-    }
-    loadingEnrichmentByProducts.value -= 1;
+    const result = await Promise.all(promises);
+    return result.flat();
   };
 
+  const addSalesByProducts = async () => {
+    loadingEnrichmentByProducts.value += 1;
+    try {
+      byProducts.value = updateSalesByProducts(byProducts.value, await getSalesByProduct(companyArray.value));
+    } catch (error) {
+      console.error("Ошибка в addSalesByProducts:", error);
+    } finally {
+      loadingEnrichmentByProducts.value -= 1;
+    }
+  };
+
+  const getOrdersByProducts = async (array) => {
+    const promises = array.map(company =>
+      getOrders({
+        apiToken: company.apiToken,
+        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+      })
+        .then(data => {
+          return data;
+        })
+    )
+
+    const result = await Promise.all(promises);
+    return result.flat();
+  };
+
+  const addOrdersByProducts = async () => {
+    loadingEnrichmentByProducts.value += 1;
+    try {
+      byProducts.value = updateOrdersByProducts({
+        byProducts: byProducts.value,
+        data: await getOrdersByProducts(companyArray.value),
+        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
+      })
+    } catch (error) {
+      console.error("Ошибка в addOrdersByProducts:", error);
+    } finally {
+      loadingEnrichmentByProducts.value -= 1;
+    }
+  }
   // Добавление информации о ЗАКАЗАХ
-  const addOrdersByProducts = async() => {
-    loadingEnrichmentByProducts.value += 1;
+  // const addOrdersByProducts = async() => {
+  //   loadingEnrichmentByProducts.value += 1;
+  //
+  //   for (const company of companyArray.value) {
+  //     try {
+  //       const ordersData = await getOrders({
+  //         apiToken: company.apiToken,
+  //         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //       });
+  //
+  //       byProducts.value = updateOrdersByProducts({
+  //         byProducts: byProducts.value,
+  //         data: ordersData,
+  //         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
+  //       });
+  //     } catch (error) {
+  //       message.error("Ошибка при загрузки информации о продажах");
+  //       console.error("addOrdersByProducts", error);
+  //     }
+  //   }
+  //   loadingEnrichmentByProducts.value -= 1;
+  // };
 
-    for (const company of companyArray.value) {
-      try {
-        const ordersData = await getOrders({
-          apiToken: company.apiToken,
-          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-        });
 
-        byProducts.value = updateOrdersByProducts({
-          byProducts: byProducts.value,
-          data: ordersData,
-          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD')
-        });
-      } catch (error) {
-        message.error("Ошибка при загрузки информации о продажах");
-        console.error("addOrdersByProducts", error);
-      }
-    }
-    loadingEnrichmentByProducts.value -= 1;
-  };
 
   // Добавление информации о ПЛАТНОМ ХРАНЕНИИ
   const enrichmentByProductsWithStorage = async() => {
@@ -552,174 +618,477 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
   }
 
-  const enrichmentByProductsWithAcceptanceReport = async() => {
-    async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
-      let currentDate = dayjs(dateFrom);
-      const endDate = dayjs(dateTo);
-      // const loadingAcceptanceReport = message.loading("Загрузка отчёта о платной приёмке", 0);
+  const fetchDataInBatches = async ({ apiToken, dateFrom, dateTo, limit }) => {
+    let currentDate = dayjs(dateFrom);
+    const endDate = dayjs(dateTo);
 
-      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-        const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+    while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+      const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate)
+        ? endDate
+        : currentDate.add(limit - 1, 'day');
 
-        try {
-          const acceptanceReportData = await getAcceptanceReport({
-            apiToken: apiToken,
-            dateFrom: currentDate.format('YYYY-MM-DD'),
-            dateTo: batchEndDate.format('YYYY-MM-DD'),
-          });
+      try {
+        const acceptanceReportData = await getAcceptanceReport({
+          apiToken: apiToken,
+          dateFrom: currentDate.format('YYYY-MM-DD'),
+          dateTo: batchEndDate.format('YYYY-MM-DD'),
+        });
 
-          byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
-        } catch (error) {
-          // loadingAcceptanceReport();
-          console.error(error);
-        }
+        byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
+      } catch (error) {
+        console.error("Ошибка при получении отчёта о приёмке:", error);
+      }
 
-        currentDate = currentDate.add(limit, 'day');
+      currentDate = currentDate.add(limit, 'day');
 
-        // Добавляем задержку в 1 минуту между запросами
-        if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-          await new Promise(resolve => setTimeout(resolve, 65000));
-        }
-
-        // loadingAcceptanceReport();
+      // Добавляем задержку в 1 минуту между запросами
+      if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+        await new Promise(resolve => setTimeout(resolve, 65000));
       }
     }
+  };
 
+  const enrichmentByProductsWithAcceptanceReport = async () => {
     loadingEnrichmentByProducts.value += 1;
-    for (const company of companyArray.value) {
-      await fetchDataInBatches({
-        apiToken: company.apiToken,
-        dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
-        dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
-        limit: 31
-      });
 
-      // await new Promise(resolve => setTimeout(resolve, 65000));
+    try {
+      const promises = companyArray.value.map(company =>
+        fetchDataInBatches({
+          apiToken: company.apiToken,
+          dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+          dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+          limit: 31,
+        })
+      );
+
+      await Promise.all(promises);
+    } catch (error) {
+      console.error("Ошибка в enrichmentByProductsWithAcceptanceReport:", error);
+    } finally {
+      loadingEnrichmentByProducts.value -= 1;
     }
-    loadingEnrichmentByProducts.value -= 1;
-  }
+  };
 
-  const enrichmentByProductsWithPromotion = async() => {
-    const promotion = ref([]);
+  const fetchDataInBatchesHistory = async ({ apiToken, dateFrom, dateTo, limit }) => {
+    let currentDate = dayjs(dateFrom);
+    const endDate = dayjs(dateTo);
+    let promotion = [];
 
-    async function fetchDataInBatchesHistory({ apiToken, dateFrom, dateTo, limit }) {
-      let currentDate = dayjs(dateFrom);
-      const endDate = dayjs(dateTo);
+    while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+      const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
 
-      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-        const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+      try {
+        const historyCostData = await getHistoryCosts({
+          apiToken,
+          dateFrom: currentDate.format('YYYY-MM-DD'),
+          dateTo: batchEndDate.format('YYYY-MM-DD'),
+        });
 
-        try {
-          const historyCostData = await getHistoryCosts({
-            apiToken: apiToken,
-            dateFrom: currentDate.format('YYYY-MM-DD'),
-            dateTo: batchEndDate.format('YYYY-MM-DD'),
-          });
-
-          const newData = historyCostData
-            .filter(advert => advert.paymentType === "Баланс" || advert.paymentType === "Счет")
-            .map(advert => ({
+        const newData = historyCostData
+          .filter(advert => advert.paymentType === "Баланс" || advert.paymentType === "Счет")
+          .map(advert => ({
             advertId: advert.advertId,
             updSum: advert.updSum,
           }));
 
-          promotion.value.push(...newData);
+        promotion.push(...newData);
+      } catch (error) {
+        console.error(error);
+      }
 
-          // byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
-        } catch (error) {
-          console.error(error);
-        }
-
-        currentDate = currentDate.add(limit, 'day');
-
-        // Добавляем задержку в 2,5 секунды между запросами
-        if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-          await new Promise(resolve => setTimeout(resolve, 2500));
-        }
+      currentDate = currentDate.add(limit, 'day');
+      if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+        await new Promise(resolve => setTimeout(resolve, 2500));
       }
     }
+    return promotion;
+  };
 
-    async function fetchDataPromotion({ apiToken, adverts }) {
-      function splitArray(inputArray, chunkSize) {
-        const resultArrays = [];
-        for (let i = 0; i < inputArray.length; i += chunkSize) {
-          resultArrays.push(inputArray.slice(i, i + chunkSize));
-        }
-        return resultArrays;
-      }
+  const fetchDataPromotion = async ({ apiToken, adverts }) => {
+    const splitArray = (inputArray, chunkSize) => {
+      return Array.from({ length: Math.ceil(inputArray.length / chunkSize) }, (_, i) =>
+        inputArray.slice(i * chunkSize, i * chunkSize + chunkSize)
+      );
+    };
 
-      const chunkedArray = splitArray(adverts, 50);
+    const chunkedArray = splitArray(adverts, 50);
+    let data = [];
 
-      let data = [];
-      for (const item of chunkedArray) {
-        const dataPromotion = await getPromotion({ apiToken: apiToken, adverts: item });
-        data.push(...dataPromotion);
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
-      function getProducts(object) {
-        if (object.type === 8) {
-          return object.autoParams?.nms[0];
-        } else if (object.type === 9) {
-          return object.unitedParams[0]?.nms[0];
-        }
-      }
-
-      return data.map(item => ({
-        advertId: item.advertId,
-        nmId: getProducts(item),
-      }));
+    for (const chunk of chunkedArray) {
+      const dataPromotion = await getPromotion({ apiToken, adverts: chunk });
+      data.push(...dataPromotion);
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    loadingEnrichmentByProducts.value += 1;
-    for (const company of companyArray.value) {
-      await fetchDataInBatchesHistory({
+    return data.map(item => ({
+      advertId: item.advertId,
+      nmId: item.type === 8 ? item.autoParams?.nms[0] : item.unitedParams[0]?.nms[0],
+    }));
+  };
+
+  const getPromotionsByCompanies = async (companies) => {
+    const promises = companies.map(company =>
+      fetchDataInBatchesHistory({
         apiToken: company.apiToken,
         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
         limit: 31
-      });
+      })
+    );
+    const results = await Promise.all(promises);
+    return results.flat();
+  };
+
+  const getPromotionData = async (companies, adverts) => {
+    const promises = companies.map(company =>
+      fetchDataPromotion({ apiToken: company.apiToken, adverts })
+    );
+    const results = await Promise.all(promises);
+    return results.flat();
+  };
+
+  // получение информации о РЕКЛАМЕ
+  const enrichmentByProductsWithPromotion = async () => {
+    loadingEnrichmentByProducts.value += 1;
+
+    try {
+      const promotion = await getPromotionsByCompanies(companyArray.value);
+      const adverts = promotion.map(advert => advert.advertId);
+      const dataAdvertsNmId = await getPromotionData(companyArray.value, adverts);
+
+      const aggregateUpdSum = (data1, data2) => {
+        const advertSumMap = new Map();
+        data1.forEach(({ advertId, updSum }) => {
+          advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
+        });
+
+        const nmSumMap = new Map();
+        const processedPairs = new Set();
+
+        data2.forEach(({ advertId, nmId }) => {
+          const pairKey = `${nmId}-${advertId}`;
+          if (advertSumMap.has(advertId) && !processedPairs.has(pairKey)) {
+            processedPairs.add(pairKey);
+            nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + advertSumMap.get(advertId));
+          }
+        });
+
+        return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
+      };
+
+      const result = aggregateUpdSum(promotion, dataAdvertsNmId);
+      byProducts.value = updateByProductsWithPromotion(byProducts.value, result);
+    } catch (error) {
+      console.error("Ошибка в enrichmentByProductsWithPromotion:", error);
+    } finally {
+      loadingEnrichmentByProducts.value -= 1;
     }
+  };
 
-    const adverts = promotion.value.map(advert => advert.advertId);
-    let dataAdvertsNmId = [];
-    for (const company of companyArray.value) {
-      dataAdvertsNmId = await fetchDataPromotion({ apiToken: company.apiToken, adverts });
-    }
+  // const enrichmentByProductsWithAcceptanceReport = async() => {
+  //   async function fetchDataInBatches({ apiToken, dateFrom, dateTo, limit }) {
+  //     let currentDate = dayjs(dateFrom);
+  //     const endDate = dayjs(dateTo);
+  //     // const loadingAcceptanceReport = message.loading("Загрузка отчёта о платной приёмке", 0);
+  //
+  //     while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //       const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+  //
+  //       try {
+  //         const acceptanceReportData = await getAcceptanceReport({
+  //           apiToken: apiToken,
+  //           dateFrom: currentDate.format('YYYY-MM-DD'),
+  //           dateTo: batchEndDate.format('YYYY-MM-DD'),
+  //         });
+  //
+  //         byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
+  //       } catch (error) {
+  //         // loadingAcceptanceReport();
+  //         console.error(error);
+  //       }
+  //
+  //       currentDate = currentDate.add(limit, 'day');
+  //
+  //       // Добавляем задержку в 1 минуту между запросами
+  //       if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //         await new Promise(resolve => setTimeout(resolve, 65000));
+  //       }
+  //
+  //       // loadingAcceptanceReport();
+  //     }
+  //   }
+  //
+  //   loadingEnrichmentByProducts.value += 1;
+  //   for (const company of companyArray.value) {
+  //     await fetchDataInBatches({
+  //       apiToken: company.apiToken,
+  //       dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //       dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+  //       limit: 31
+  //     });
+  //
+  //     // await new Promise(resolve => setTimeout(resolve, 65000));
+  //   }
+  //   loadingEnrichmentByProducts.value -= 1;
+  // }
 
-    function aggregateUpdSum(data1, data2) {
-      // Шаг 1: Суммируем updSum по advertId
-      const advertSumMap = new Map();
+  // const fetchDataInBatchesHistory = async ({ apiToken, dateFrom, dateTo, limit }) => {
+  //   let currentDate = dayjs(dateFrom);
+  //   const endDate = dayjs(dateTo);
+  //   const promotion = [];
+  //
+  //   while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //     const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate)
+  //       ? endDate
+  //       : currentDate.add(limit - 1, 'day');
+  //
+  //     try {
+  //       const historyCostData = await getHistoryCosts({
+  //         apiToken: apiToken,
+  //         dateFrom: currentDate.format('YYYY-MM-DD'),
+  //         dateTo: batchEndDate.format('YYYY-MM-DD'),
+  //       });
+  //
+  //       const newData = historyCostData
+  //         .filter(advert => advert.paymentType === "Баланс" || advert.paymentType === "Счет")
+  //         .map(advert => ({
+  //           advertId: advert.advertId,
+  //           updSum: advert.updSum,
+  //         }));
+  //
+  //       promotion.push(...newData);
+  //     } catch (error) {
+  //       console.error("Ошибка при получении данных о промоакциях:", error);
+  //     }
+  //
+  //     currentDate = currentDate.add(limit, 'day');
+  //
+  //     // Добавляем задержку в 2,5 секунды между запросами
+  //     if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //       await new Promise(resolve => setTimeout(resolve, 2500));
+  //     }
+  //   }
+  //
+  //   return promotion;
+  // };
+  //
+  // const fetchDataPromotion = async ({ apiToken, adverts }) => {
+  //   const splitArray = (inputArray, chunkSize) => {
+  //     const resultArrays = [];
+  //     for (let i = 0; i < inputArray.length; i += chunkSize) {
+  //       resultArrays.push(inputArray.slice(i, i + chunkSize));
+  //     }
+  //     return resultArrays;
+  //   };
+  //
+  //   const chunkedArray = splitArray(adverts, 50);
+  //   let data = [];
+  //
+  //   for (const item of chunkedArray) {
+  //     try {
+  //       const dataPromotion = await getPromotion({ apiToken: apiToken, adverts: item });
+  //       data.push(...dataPromotion);
+  //       await new Promise(resolve => setTimeout(resolve, 500)); // Задержка 500 мс
+  //     } catch (error) {
+  //       console.error("Ошибка при получении данных о рекламных кампаниях:", error);
+  //     }
+  //   }
+  //
+  //   const getProducts = (object) => {
+  //     if (object.type === 8) {
+  //       return object.autoParams?.nms[0];
+  //     } else if (object.type === 9) {
+  //       return object.unitedParams[0]?.nms[0];
+  //     }
+  //   };
+  //
+  //   return data.map(item => ({
+  //     advertId: item.advertId,
+  //     nmId: getProducts(item),
+  //   }));
+  // };
+  //
+  // const aggregateUpdSum = (data1, data2) => {
+  //   const advertSumMap = new Map();
+  //   const nmSumMap = new Map();
+  //   const processedPairs = new Set();
+  //
+  //   // Шаг 1: Суммируем updSum по advertId
+  //   data1.forEach(({ advertId, updSum }) => {
+  //     advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
+  //   });
+  //
+  //   // Шаг 2: Сопоставляем advertId с nmId
+  //   data2.forEach(({ advertId, nmId }) => {
+  //     const pairKey = `${nmId}-${advertId}`;
+  //
+  //     if (advertSumMap.has(advertId) && !processedPairs.has(pairKey)) {
+  //       processedPairs.add(pairKey);
+  //       nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + advertSumMap.get(advertId));
+  //     }
+  //   });
+  //
+  //   // Шаг 3: Преобразуем Map в массив объектов
+  //   return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
+  // };
+  //
+  // const enrichmentByProductsWithPromotion = async () => {
+  //   loadingEnrichmentByProducts.value += 1;
+  //
+  //   try {
+  //     // Получаем данные о промоакциях для всех компаний
+  //     const promotionDataPromises = companyArray.value.map(company =>
+  //       fetchDataInBatchesHistory({
+  //         apiToken: company.apiToken,
+  //         dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //         dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+  //         limit: 31,
+  //       })
+  //     );
+  //
+  //     const promotionData = await Promise.all(promotionDataPromises);
+  //     const promotion = promotionData.flat();
+  //
+  //     // Получаем данные о рекламных кампаниях для всех компаний
+  //     const adverts = promotion.map(advert => advert.advertId);
+  //     const promotionAdvertsPromises = companyArray.value.map(company =>
+  //       fetchDataPromotion({ apiToken: company.apiToken, adverts })
+  //     );
+  //
+  //     const promotionAdvertsData = await Promise.all(promotionAdvertsPromises);
+  //     const dataAdvertsNmId = promotionAdvertsData.flat();
+  //
+  //     // Объединяем данные и обновляем byProducts
+  //     const result = aggregateUpdSum(promotion, dataAdvertsNmId);
+  //     byProducts.value = updateByProductsWithPromotion(byProducts.value, result);
+  //   } catch (error) {
+  //     console.error("Ошибка в enrichmentByProductsWithPromotion:", error);
+  //   } finally {
+  //     loadingEnrichmentByProducts.value -= 1;
+  //   }
+  // };
 
-      data1.forEach(({ advertId, updSum }) => {
-        advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
-      });
-
-      // console.log("advertSumMap", advertSumMap);
-
-      // Шаг 2: Сопоставляем advertId с nmId, избегая повторных сложений
-      const nmSumMap = new Map();
-      const processedPairs = new Set(); // Храним уже обработанные пары nmId-advertId
-
-      data2.forEach(({ advertId, nmId }) => {
-        const pairKey = `${nmId}-${advertId}`; // Уникальный ключ
-
-        if (advertSumMap.has(advertId) && !processedPairs.has(pairKey)) {
-          processedPairs.add(pairKey); // Запоминаем, что уже обработали эту пару
-          nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + advertSumMap.get(advertId));
-        }
-      });
-
-      // Шаг 3: Преобразуем Map обратно в массив объектов
-      return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
-    }
-
-    const result = aggregateUpdSum(promotion.value, dataAdvertsNmId);
-
-    byProducts.value = updateByProductsWithPromotion(byProducts.value, result);
-
-    loadingEnrichmentByProducts.value -= 1;
-  }
+  // const enrichmentByProductsWithPromotion = async() => {
+  //   const promotion = ref([]);
+  //
+  //   async function fetchDataInBatchesHistory({ apiToken, dateFrom, dateTo, limit }) {
+  //     let currentDate = dayjs(dateFrom);
+  //     const endDate = dayjs(dateTo);
+  //
+  //     while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //       const batchEndDate = currentDate.add(limit - 1, 'day').isAfter(endDate) ? endDate : currentDate.add(limit - 1, 'day');
+  //
+  //       try {
+  //         const historyCostData = await getHistoryCosts({
+  //           apiToken: apiToken,
+  //           dateFrom: currentDate.format('YYYY-MM-DD'),
+  //           dateTo: batchEndDate.format('YYYY-MM-DD'),
+  //         });
+  //
+  //         const newData = historyCostData
+  //           .filter(advert => advert.paymentType === "Баланс" || advert.paymentType === "Счет")
+  //           .map(advert => ({
+  //           advertId: advert.advertId,
+  //           updSum: advert.updSum,
+  //         }));
+  //
+  //         promotion.value.push(...newData);
+  //
+  //         // byProducts.value = updateByProductsWithAcceptanceReport(byProducts.value, acceptanceReportData.report);
+  //       } catch (error) {
+  //         console.error(error);
+  //       }
+  //
+  //       currentDate = currentDate.add(limit, 'day');
+  //
+  //       // Добавляем задержку в 2,5 секунды между запросами
+  //       if (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+  //         await new Promise(resolve => setTimeout(resolve, 2500));
+  //       }
+  //     }
+  //   }
+  //
+  //   async function fetchDataPromotion({ apiToken, adverts }) {
+  //     function splitArray(inputArray, chunkSize) {
+  //       const resultArrays = [];
+  //       for (let i = 0; i < inputArray.length; i += chunkSize) {
+  //         resultArrays.push(inputArray.slice(i, i + chunkSize));
+  //       }
+  //       return resultArrays;
+  //     }
+  //
+  //     const chunkedArray = splitArray(adverts, 50);
+  //
+  //     let data = [];
+  //     for (const item of chunkedArray) {
+  //       const dataPromotion = await getPromotion({ apiToken: apiToken, adverts: item });
+  //       data.push(...dataPromotion);
+  //       await new Promise(resolve => setTimeout(resolve, 500));
+  //     }
+  //
+  //     function getProducts(object) {
+  //       if (object.type === 8) {
+  //         return object.autoParams?.nms[0];
+  //       } else if (object.type === 9) {
+  //         return object.unitedParams[0]?.nms[0];
+  //       }
+  //     }
+  //
+  //     return data.map(item => ({
+  //       advertId: item.advertId,
+  //       nmId: getProducts(item),
+  //     }));
+  //   }
+  //
+  //   loadingEnrichmentByProducts.value += 1;
+  //   for (const company of companyArray.value) {
+  //     await fetchDataInBatchesHistory({
+  //       apiToken: company.apiToken,
+  //       dateFrom: dayjs(filters.value.dates[0]).format('YYYY-MM-DD'),
+  //       dateTo: dayjs(filters.value.dates[1]).format('YYYY-MM-DD'),
+  //       limit: 31
+  //     });
+  //   }
+  //
+  //   const adverts = promotion.value.map(advert => advert.advertId);
+  //   let dataAdvertsNmId = [];
+  //   for (const company of companyArray.value) {
+  //     dataAdvertsNmId = await fetchDataPromotion({ apiToken: company.apiToken, adverts });
+  //   }
+  //
+  //   function aggregateUpdSum(data1, data2) {
+  //     // Шаг 1: Суммируем updSum по advertId
+  //     const advertSumMap = new Map();
+  //
+  //     data1.forEach(({ advertId, updSum }) => {
+  //       advertSumMap.set(advertId, (advertSumMap.get(advertId) || 0) + updSum);
+  //     });
+  //
+  //     // console.log("advertSumMap", advertSumMap);
+  //
+  //     // Шаг 2: Сопоставляем advertId с nmId, избегая повторных сложений
+  //     const nmSumMap = new Map();
+  //     const processedPairs = new Set(); // Храним уже обработанные пары nmId-advertId
+  //
+  //     data2.forEach(({ advertId, nmId }) => {
+  //       const pairKey = `${nmId}-${advertId}`; // Уникальный ключ
+  //
+  //       if (advertSumMap.has(advertId) && !processedPairs.has(pairKey)) {
+  //         processedPairs.add(pairKey); // Запоминаем, что уже обработали эту пару
+  //         nmSumMap.set(nmId, (nmSumMap.get(nmId) || 0) + advertSumMap.get(advertId));
+  //       }
+  //     });
+  //
+  //     // Шаг 3: Преобразуем Map обратно в массив объектов
+  //     return Array.from(nmSumMap, ([nmId, updSum]) => ({ nmId, updSum }));
+  //   }
+  //
+  //   const result = aggregateUpdSum(promotion.value, dataAdvertsNmId);
+  //
+  //   byProducts.value = updateByProductsWithPromotion(byProducts.value, result);
+  //
+  //   loadingEnrichmentByProducts.value -= 1;
+  // }
 
   return {
     initialized,

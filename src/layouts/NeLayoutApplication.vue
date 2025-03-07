@@ -54,7 +54,7 @@ watchEffect(() => {
         <a-menu-item key="store">
           <router-link to="/store">
             <a-a-plus-circle-outlined />
-            <span>Добавить магазин</span>
+            <span>Мои магазины</span>
           </router-link>
         </a-menu-item>
 
