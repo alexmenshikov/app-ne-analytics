@@ -26,12 +26,12 @@ onMounted(async () => {
     await analyticsStore.enrichmentCompaniesInfo();
     analyticsStore.fillingTax();
     await analyticsStore.enrichmentWbArticles();
+    analyticsStore.fillingCost();
     await analyticsStore.createByProducts();
     await analyticsStore.addSalesByProducts();
     await analyticsStore.addOrdersByProducts();
     await analyticsStore.enrichmentByProductsWithAcceptanceReport();
     await analyticsStore.enrichmentByProductsWithPromotion();
-    analyticsStore.fillingCost();
   }
 
   // if(analyticsStore.companyArray && analyticsStore.companyArray.length > 0) {

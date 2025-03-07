@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {computed, nextTick, ref, watch} from "vue";
+import {computed, nextTick, ref, watch, watchEffect} from "vue";
 import {message} from "ant-design-vue";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -347,25 +347,63 @@ export const useAnalyticsStore = defineStore("AnalyticsStore", () => {
     }
   );
 
+  // watch(filters.value.cost, (newFilters) => {
+  //   localStorage.setItem("filtersCost", JSON.stringify(newFilters));
+  // });
+  //
+  // watch(filters.value.tax, (newFilters) => {
+  //   localStorage.setItem("filtersTax", JSON.stringify(newFilters));
+  // });
+
+  watchEffect(() => {
+    if (filters.value.cost !== null && filters.value.tax !== null) {
+      localStorage.setItem("filtersCost", JSON.stringify(filters.value.cost));
+      localStorage.setItem("filtersTax", JSON.stringify(filters.value.tax));
+    }
+  });
+  // watch(
+  //   () => [filters.value.cost, filters.value.tax],
+  //   ([newCost, newTax]) => {
+  //     if (newCost?.length) {
+  //       localStorage.setItem("filtersCost", JSON.stringify(newCost));
+  //     }
+  //     if (newTax?.length) {
+  //       localStorage.setItem("filtersTax", JSON.stringify(newTax));
+  //     }
+  //   },
+  //   { deep: true }
+  // );
+
   // Формирование списка для страницы с НАЛОГ
   const fillingTax = () => {
+    const storageTax = JSON.parse(localStorage.getItem("filtersTax")) || [];
+
     companyArray.value.forEach(company => {
+      let existElement = storageTax.find(item =>
+        item.id === company.id && item.name === company.name
+      );
+
       filters.value.tax.push({
         id: company.id,
         name: company.name,
-        value: 7,
+        value: existElement?.value || 0,
       })
     })
   }
 
   const fillingCost = () => {
-    filters.value.cost = []; // Очищаем массив перед заполнением
+    const storageCost = JSON.parse(localStorage.getItem("filtersCost")) || [];
+
     wbArticles.value.forEach(article => {
+      let existElement = storageCost.find(item =>
+        item.nmID === article.nmID && item.vendorCode === article.vendorCode
+      );
+
       filters.value.cost.push({
         tradeMark: article.brand,
         nmID: article.nmID,
         vendorCode: article.vendorCode,
-        value: 0,
+        value: existElement?.value || 0,
       });
     });
   };
